@@ -1,0 +1,225 @@
+<title>Bitácora Digital de Cargues</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: una columna de lectura (~70ch) con diagrama y tablas a ancho completo; tono de consola de operación de contact center */
+:root{
+  --bg:#f6f7f9; --surface:#ffffff; --fg:#1b2430; --muted:#5a6676; --line:#d9dee6;
+  --accent:#0e6e8c; --accent-soft:#e3f1f5;
+  --ok:#1f7a45; --ok-soft:#e4f3ea; --warn:#9a6200; --warn-soft:#fbf0dc; --no:#a83232; --no-soft:#f8e6e6;
+  --display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#11161c; --surface:#18202a; --fg:#e4e9ef; --muted:#9aa6b4; --line:#2b3644;
+  --accent:#5fbad6; --accent-soft:#16303a;
+  --ok:#6fcf97; --ok-soft:#163024; --warn:#e6b45a; --warn-soft:#33280f; --no:#ef8a8a; --no-soft:#3a1a1a;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11161c; --surface:#18202a; --fg:#e4e9ef; --muted:#9aa6b4; --line:#2b3644;
+  --accent:#5fbad6; --accent-soft:#16303a;
+  --ok:#6fcf97; --ok-soft:#163024; --warn:#e6b45a; --warn-soft:#33280f; --no:#ef8a8a; --no-soft:#3a1a1a;
+  color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.6}
+.wrap{max-width:1040px;margin:0 auto;padding-block:40px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:40px}
+header{display:grid;gap:10px}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font-family:var(--display);font-size:clamp(28px,4.5vw,40px);line-height:1.1;margin:0;text-wrap:balance}
+h2{font-family:var(--display);font-size:24px;margin:0 0 6px;text-wrap:balance}
+h3{font-family:var(--display);font-size:17px;margin:0}
+p{margin:0;max-width:70ch}
+.lead{color:var(--muted);font-size:16px}
+section{display:grid;gap:14px;min-width:0}
+code,.mono{font-family:var(--mono);font-size:.88em}
+.diagram{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:16px;overflow-x:auto}
+.diagram pre{margin:0;min-width:860px}
+.mods{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:14px}
+.mod{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:16px;display:grid;gap:8px;align-content:start;min-width:0}
+.mod .tag{font-family:var(--mono);font-size:11px;color:var(--accent);letter-spacing:.06em;text-transform:uppercase}
+.mod p{font-size:14px}
+.mod ul{margin:0;padding-left:18px;font-size:14px;color:var(--muted)}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:640px}
+th,td{text-align:left;vertical-align:top;padding:10px 12px;border-bottom:1px solid var(--line)}
+th{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500;background:var(--bg)}
+tr:last-child td{border-bottom:0}
+td:first-child{font-family:var(--mono);font-size:13px;white-space:nowrap}
+.pill{display:inline-block;font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.auto{background:var(--ok-soft);color:var(--ok)}
+.user{background:var(--accent-soft);color:var(--accent)}
+.ask{background:var(--warn-soft);color:var(--warn)}
+.si{background:var(--ok-soft);color:var(--ok)}
+.prob{background:var(--warn-soft);color:var(--warn)}
+.nc{background:var(--no-soft);color:var(--no)}
+.note{border-left:3px solid var(--accent);padding:4px 0 4px 14px;color:var(--muted);font-size:14px;max-width:80ch}
+ol.q{margin:0;padding-left:22px;display:grid;gap:10px;max-width:80ch}
+ol.q li::marker{font-family:var(--mono);color:var(--accent)}
+.stack{display:flex;flex-wrap:wrap;gap:8px}
+.stack span{font-family:var(--mono);font-size:12px;border:1px solid var(--line);border-radius:4px;padding:3px 8px;background:var(--surface)}
+.src{font-size:13px;color:var(--muted)}
+.src a{color:var(--accent)}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">Vista de sistema · v0.1 · propuesta</div>
+  <h1>Bitácora Digital de Cargues Wolkvox</h1>
+  <p class="lead">Una aplicación web en Quarkus que toma los CSV de una carpeta, los valida, los carga a campañas de Wolkvox, deja cada cargue registrado en la bitácora (y en el Excel de siempre) y recoge por hora las métricas de barrido y conexión.</p>
+</header>
+
+<section>
+  <h2>Diagrama de sistema</h2>
+  <p>Arquitectura hexagonal (puertos y adaptadores) dentro de un monolito modular. El dominio no conoce Wolkvox, Excel ni la base de datos: los habla a través de puertos, así un cambio en la API de Wolkvox solo toca su adaptador.</p>
+  <div class="diagram">
+<pre class="mermaid">
+flowchart LR
+  subgraph EXT_IN["Entradas"]
+    DIR[("Carpeta de CSV<br/>(red o local)")]
+    OP(["Operador / Jefe<br/>navegador"])
+  end
+
+  subgraph APP["Aplicación Quarkus"]
+    direction TB
+    subgraph UI["Capa web"]
+      WEB["UI web<br/>Asignación · Agenda · Métricas"]
+      REST["API REST interna"]
+    end
+    subgraph CORE["Dominio y casos de uso"]
+      M1["1 Escáner de archivos"]
+      M2["2 Validación y normalización"]
+      M3["3 Asignación y programación"]
+      M4["4 Orquestador de cargue"]
+      M5["5 Bitácora"]
+      M6["6 Control de campañas"]
+      M7["7 Recolector de métricas"]
+      M8["8 Agenda y tableros"]
+    end
+    subgraph ADP["Adaptadores"]
+      FS["Lector de sistema de archivos"]
+      WVX["Cliente Wolkvox<br/>REST + reintentos + límite 2 conc."]
+      XLS["Exportador Excel<br/>encabezado actual"]
+      DB["Repositorio JPA"]
+      SCH["Planificador<br/>tareas por hora"]
+    end
+  end
+
+  subgraph EXT_OUT["Sistemas externos"]
+    WAPI[["Wolkvox API v2<br/>campañas · reportes · tiempo real"]]
+    PG[("PostgreSQL")]
+    XL[["Bitacora.xlsx"]]
+  end
+
+  DIR --> FS --> M1
+  OP --> WEB --> REST
+  REST --> M3
+  REST --> M8
+  M1 --> M2 --> M3 --> M4
+  M4 --> WVX
+  M4 --> M5
+  M6 --> WVX
+  M6 --> M5
+  SCH --> M7
+  SCH --> M6
+  M7 --> WVX
+  M7 --> DB
+  M5 --> DB
+  M5 --> XLS --> XL
+  M8 --> DB
+  WVX <--> WAPI
+  DB <--> PG
+</pre>
+  </div>
+  <p class="note">Flujo principal: escanear → validar → asignar a ID de campaña → cargar por lotes → registrar en bitácora → activar/detener campaña → recoger métricas cada hora → mostrar agenda y tableros.</p>
+</section>
+
+<section>
+  <h2>Módulos</h2>
+  <div class="mods">
+    <div class="mod"><span class="tag">1 · Escáner de archivos</span><h3>Encuentra lo que hay por cargar</h3>
+      <p>Revisa una carpeta local del PC cada N minutos (o al pulsar "Escanear") y lista los CSV nuevos con tamaño, filas y fecha. Puede ser la carpeta de SharePoint sincronizada o una carpeta donde se dejan los CSV para cargue; para la app ambas son una ruta normal.</p>
+      <ul><li>Calcula una huella SHA-256 de cada archivo para no cargar dos veces la misma base.</li><li>Mueve los archivos procesados a <code>/procesados</code> y los fallidos a <code>/rechazados</code>.</li></ul></div>
+    <div class="mod"><span class="tag">2 · Validación</span><h3>Separa registros válidos de no válidos</h3>
+      <p>Compara el CSV con la plantilla de Wolkvox (nombre, identificación, al menos un teléfono, largos máximos por campo) antes de enviar nada.</p>
+      <ul><li>Teléfonos solo dígitos y con el prefijo de la operación; duplicados por ID y por teléfono.</li><li>Genera un CSV de rechazados con el motivo por fila. Ese conteo alimenta "registros no válidos".</li></ul></div>
+    <div class="mod"><span class="tag">3 · Asignación y programación</span><h3>Decide qué lista va a qué campaña y cuándo</h3>
+      <p>Pantalla donde se marcan los archivos y se elige el ID de campaña, la estrategia, el jefe y la franja horaria planeada.</p>
+      <ul><li>Lista de campañas traída de Wolkvox para evitar IDs mal digitados.</li><li>Permite dejar el cargue programado para una hora.</li></ul></div>
+    <div class="mod"><span class="tag">4 · Orquestador de cargue</span><h3>Sube la base sin chocar con los límites</h3>
+      <p>Parte la lista en lotes de hasta 10.000 registros (límite de subida por consumo) y nunca hace más de 2 llamadas a la vez con el mismo token.</p>
+      <ul><li>Reintentos con espera creciente y reanudación desde el último lote confirmado.</li><li>Guarda cargados, rechazados por Wolkvox y hora de inicio y fin del cargue.</li></ul></div>
+    <div class="mod"><span class="tag">5 · Bitácora</span><h3>El registro único de cada cargue</h3>
+      <p>Cada cargue es una fila con las columnas del Excel actual más REMARCACIONES. Se guarda en base de datos y se escribe en un Excel nuevo, copia del actual, que se sigue pudiendo abrir y revisar como hoy.</p>
+      <ul><li>Los campos automáticos se llenan solos; el usuario solo completa los manuales y la observación.</li><li>Historial de cambios por fila (quién y cuándo).</li></ul></div>
+    <div class="mod"><span class="tag">6 · Control de campañas</span><h3>Horas exactas de inicio y detención</h3>
+      <p>Si la campaña se activa y detiene desde la aplicación (por API), la hora exacta queda registrada en el momento de la llamada, sin depender de un reporte.</p>
+      <ul><li>Puede activar/detener automáticamente según la franja programada.</li><li>Si alguien la mueve desde Manager, se detecta por la actividad de marcación (ver métricas).</li></ul></div>
+    <div class="mod"><span class="tag">7 · Recolector de métricas</span><h3>Fotos por corte de hora</h3>
+      <p>Una tarea al cierre de cada hora consulta los reportes de Wolkvox y guarda un resumen por campaña y lista.</p>
+      <ul><li>Agentes conectados, registros barridos, intentos, contactos efectivos, total gestionado.</li><li>Respeta los límites: rango de 31 días, 60.000 filas y 60 s por consulta.</li></ul></div>
+    <div class="mod"><span class="tag">8 · Agenda y tableros</span><h3>Qué lista está activa a qué hora</h3>
+      <p>Un horario del día tipo Gantt: filas por campaña/lista, columnas por hora, con lo planeado frente a lo real (inicio y fin efectivos).</p>
+      <ul><li>Gráficas por hora de conectados, barrido y % de gestión.</li><li>Alertas: campaña planeada que no arrancó, lista agotada, muchos no válidos.</li></ul></div>
+  </div>
+  <div class="stack" aria-label="Tecnologías propuestas">
+    <span>Quarkus 3 · Java 21</span><span>RESTEasy Reactive</span><span>MicroProfile REST Client</span><span>SmallRye Fault Tolerance</span><span>Quarkus Scheduler</span><span>Hibernate ORM Panache</span><span>PostgreSQL + Flyway</span><span>Apache POI</span><span>OpenCSV / Jackson CSV</span><span>OIDC (roles)</span><span>Micrometer + OpenTelemetry</span><span>Qute + htmx o SPA</span>
+  </div>
+</section>
+
+<section>
+  <h2>Entrada de información: columna por columna</h2>
+  <p>La meta es que la persona escriba lo mínimo. Así propongo que se llene cada columna del Excel; las marcadas "por confirmar" dependen de tus respuestas.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Columna</th><th>Origen</th><th>Cómo se llena</th></tr></thead>
+    <tbody>
+      <tr><td>FECHA</td><td><span class="pill auto">automático</span></td><td>Fecha del cargue.</td></tr>
+      <tr><td>HORA INICIO</td><td><span class="pill auto">automático</span></td><td>Hora en que se activa la campaña (ej. 2:00 PM). La registra el módulo de control de campañas.</td></tr>
+      <tr><td>HORA FINAL</td><td><span class="pill auto">automático</span></td><td>Hora en que se detiene la campaña (ej. 5:00 PM).</td></tr>
+      <tr><td>ID_CAMPAÑA</td><td><span class="pill user">se elige</span></td><td>Lista desplegable con las campañas de Wolkvox.</td></tr>
+      <tr><td>NOMBRE DE LISTA</td><td><span class="pill auto">automático</span></td><td>Nombre del archivo CSV (editable).</td></tr>
+      <tr><td>CAMPAÑA</td><td><span class="pill auto">automático</span></td><td>Nombre de la campaña según el ID elegido.</td></tr>
+      <tr><td>ESTRATEGIA</td><td><span class="pill user">se elige</span></td><td>NUEVA o REMARCACIÓN (lo que hoy se escribe "NUEVA R").</td></tr>
+      <tr><td>REMARCACIONES <span class="pill ask">nueva</span></td><td><span class="pill auto">automático</span></td><td>Número de remarcación de esa lista en la campaña (0 = base nueva, 1 = primera remarcación…). La app lo calcula contando cargues previos de la misma lista.</td></tr>
+      <tr><td>JEFE</td><td><span class="pill user">se elige</span></td><td>Catálogo de jefes; se puede precargar por campaña.</td></tr>
+      <tr><td>REGISTROS CARGADOS</td><td><span class="pill auto">automático</span></td><td>Aceptados por Wolkvox tras el cargue.</td></tr>
+      <tr><td>TOTAL GESTIONADO</td><td><span class="pill auto">automático</span></td><td>Registros de la lista marcados por el predictivo o el preview, desde reportes, actualizado cada hora.</td></tr>
+      <tr><td>ESTRATEGIA MARCACION</td><td><span class="pill auto">automático</span></td><td>PREDICTIVO o PREVIEW, tomado del tipo de la campaña elegida.</td></tr>
+      <tr><td>% GESTIÓN</td><td><span class="pill auto">calculado</span></td><td>TOTAL GESTIONADO ÷ REGISTROS CARGADOS, actualizado cada hora.</td></tr>
+      <tr><td>DESCARGA INFORME</td><td><span class="pill auto">automático</span></td><td>PDT al crear la fila; pasa a OK cuando se descarga el informe (desde la app, o marcado a mano).</td></tr>
+      <tr><td>NOMBRE ESTRATEGIA</td><td><span class="pill user">sugerido</span></td><td>Descripción del segmento (ej. "Recordación hasta 5 días Acuerdos"). La app recuerda la última usada para cada campaña y la propone; se puede editar.</td></tr>
+      <tr><td>OBSERVACION</td><td><span class="pill user">texto libre</span></td><td>Escrito por el usuario; la app agrega avisos automáticos (p. ej. "312 no válidos").</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">Propuesta adicional sin tocar el Excel: guardar aparte <span class="mono">REGISTROS NO VÁLIDOS</span>, <span class="mono">HUELLA ARCHIVO</span> y las horas reales de activación, y exportarlos en una hoja secundaria del mismo libro.</p>
+</section>
+
+<section>
+  <h2>Qué ofrece Wolkvox por API</h2>
+  <p>Base: <code>https://wv{servidor}.wolkvox.com/api/v2/</code>, token en el encabezado <code>wolkvox-token</code>. El portal de desarrolladores bloqueó la lectura desde mi entorno, así que separo lo confirmado en documentación pública de lo que hay que verificar en el portal o en la colección de Postman.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Necesidad</th><th>Estado</th><th>Detalle</th></tr></thead>
+    <tbody>
+      <tr><td>Cargar registros a campaña</td><td><span class="pill prob">probable</span></td><td>Existe el grupo de APIs "Campañas" con límite de 10.000 registros subidos por consumo, y hay APIs de borrar registro y eliminar campaña. No pude ver el nombre exacto del endpoint de inserción en campaña predictiva.</td></tr>
+      <tr><td>Iniciar / detener campaña</td><td><span class="pill si">sí</span></td><td>Documentado <code>PUT campaign.php?api=start</code>. Si la app activa y detiene, la hora exacta queda registrada por la propia app.</td></tr>
+      <tr><td>Historial de activaciones hechas en Manager</td><td><span class="pill nc">no encontrado</span></td><td>No hallé un log de inicio/pausa consultable. Alternativa: inferir inicio y fin por la primera y última llamada de la campaña en el detalle de interacciones.</td></tr>
+      <tr><td>Usuarios conectados por hora</td><td><span class="pill si">sí</span></td><td>Reportes de agentes por API (<code>reports_manager.php?api=agent_…</code>), incluido "agente por evento" (login/logout). En Manager existe "Estados de agente hora a hora" con LOGIN_TIME por hora. También hay API de tiempo real para la foto del momento.</td></tr>
+      <tr><td>Registros barridos por hora</td><td><span class="pill prob">probable</span></td><td>Se calcula agrupando por hora el detalle de interacciones salientes de la campaña. Hay que confirmar que el detalle traiga ID de campaña e ID de registro.</td></tr>
+      <tr><td>Registros no válidos</td><td><span class="pill si">sí</span></td><td>La app los cuenta al validar antes de subir, y suma los que Wolkvox rechace en la respuesta.</td></tr>
+      <tr><td>Total gestionado / tipificaciones</td><td><span class="pill prob">probable</span></td><td>Desde reportes de interacciones con tipificación; el campo exacto se confirma en el portal.</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">Límites a respetar: 2 solicitudes simultáneas por token, rango de 31 días, 60.000 registros o 256 MB por descarga, 60 s por solicitud, y tope diario de licencias × 1.000 consumos por token.</p>
+  <h3>¿Hay una forma más eficaz de cargar?</h3>
+  <p>La API por lotes es la mejor opción que encontré: se automatiza, se valida antes y deja trazabilidad. El cargue manual de Manager ("Subir lista") no se puede automatizar. No encontré documentado un cargue por SFTP o carpeta compartida; vale la pena preguntárselo a soporte de Wolkvox, porque para bases muy grandes evitaría partir en lotes.</p>
+  <p class="src">Fuentes: <a href="https://wolkvox.helpjuice.com/como-puedo-consumir-el-api-de-reportes" target="_blank" rel="noopener">Cómo consumir las APIs</a> · <a href="https://www.wolkvox.com/documentacion-de-apis" target="_blank" rel="noopener">Documentación de APIs y límites</a> · <a href="https://wolkvox.helpjuice.com/es_CO/como-subir-un-listado-de-clientes-a-la-campana-predictivas-o-progresivas" target="_blank" rel="noopener">Plantilla de cargue a predictivas</a> · <a href="https://helpcenter.wolkvox.com/en_US/¿que-reporte-me-sirve-para-analizar-el-desempeno-de-los-agentes-por-hora-del-dia" target="_blank" rel="noopener">Estados de agente hora a hora</a> · <a href="https://wolkvox.helpjuice.com/wolkvox-manager-20250331" target="_blank" rel="noopener">Notas de versión (eliminar campaña)</a> · <a href="https://www.postman.com/wolkvox-api/workspace/team-workspace" target="_blank" rel="noopener">Colección Postman de Wolkvox</a></p>
+</section>
+
+<section>
+  <h2>Preguntas abiertas</h2>
+  <ol class="q">
+    <li><strong>REMARCACIONES:</strong> ¿te sirve como número de vuelta (0, 1, 2…), o prefieres que muestre cuántos registros se remarcaron?</li>
+    <li>La colección de Postman: mi entorno no puede abrir ningún enlace de postman.com. Necesito el archivo JSON exportado (menú … de la colección → Export) subido al chat.</li>
+  </ol>
+</section>
+</div>

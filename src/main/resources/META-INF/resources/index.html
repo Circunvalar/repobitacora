@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bitácora Digital</title>
+<style>
+:root{
+  --bg:#f6f7f9; --surface:#fff; --fg:#1b2430; --muted:#5a6676; --line:#d9dee6;
+  --accent:#0e6e8c; --accent-soft:#e3f1f5; --ok:#1f7a45; --ok-soft:#e4f3ea;
+  --warn:#9a6200; --warn-soft:#fbf0dc; --no:#a83232; --no-soft:#f8e6e6;
+  --plan:#b9d9e4; --real:#0e6e8c;
+  --body:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; --mono:ui-monospace,Consolas,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#11161c; --surface:#18202a; --fg:#e4e9ef; --muted:#9aa6b4; --line:#2b3644;
+  --accent:#5fbad6; --accent-soft:#16303a; --ok:#6fcf97; --ok-soft:#163024;
+  --warn:#e6b45a; --warn-soft:#33280f; --no:#ef8a8a; --no-soft:#3a1a1a; --plan:#24495a; --real:#5fbad6; color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 var(--body)}
+header{display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;padding:14px 24px;background:var(--surface);border-bottom:1px solid var(--line)}
+header h1{font-size:18px;margin:0}
+.modo{font-family:var(--mono);font-size:12px;color:var(--muted)}
+nav{display:flex;gap:4px;flex-wrap:wrap}
+nav button{border:0;background:none;color:var(--muted);padding:8px 14px;border-radius:6px;font:inherit;cursor:pointer}
+nav button[aria-selected=true]{background:var(--accent-soft);color:var(--accent);font-weight:600}
+main{padding:20px 24px;display:grid;grid-template-columns:minmax(0,1fr);gap:16px;max-width:1500px;margin:0 auto}
+main > section{min-width:0}
+.barra{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.barra .sep{flex:1}
+button.btn{border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:7px 14px;border-radius:6px;font:inherit;cursor:pointer}
+button.btn.primario{background:var(--accent);border-color:var(--accent);color:#fff}
+button.btn:disabled{opacity:.5;cursor:default}
+button.btn:focus-visible,nav button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+select{max-width:240px}
+input,select{font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:5px;padding:5px 7px}
+.caja{background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:auto}
+table{border-collapse:collapse;width:100%}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap;vertical-align:middle}
+th{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);background:var(--bg);position:sticky;top:0}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
+tr:last-child td{border-bottom:0}
+.pill{display:inline-block;font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:99px}
+.p-ok{background:var(--ok-soft);color:var(--ok)} .p-warn{background:var(--warn-soft);color:var(--warn)} .p-no{background:var(--no-soft);color:var(--no)} .p-info{background:var(--accent-soft);color:var(--accent)}
+.vacio{padding:28px;text-align:center;color:var(--muted)}
+.aviso{padding:10px 14px;border-radius:6px;background:var(--warn-soft);color:var(--warn)}
+.error{padding:10px 14px;border-radius:6px;background:var(--no-soft);color:var(--no)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+.kpi b{display:block;font-size:24px;font-variant-numeric:tabular-nums}
+.kpi span{color:var(--muted);font-size:12px}
+.gantt{display:grid;min-width:900px}
+.gantt .fila{display:grid;grid-template-columns:260px 1fr;border-bottom:1px solid var(--line);min-height:38px;align-items:center}
+.gantt .nom{padding:6px 10px;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gantt .pista{position:relative;height:100%;min-height:38px;background-image:linear-gradient(to right,var(--line) 1px,transparent 1px);background-size:calc(100%/16) 100%}
+.gantt .bar{position:absolute;border-radius:4px;font-size:11px;padding:0 6px;overflow:hidden;white-space:nowrap;line-height:14px}
+.gantt .plan{top:5px;height:14px;background:var(--plan);color:var(--fg)}
+.gantt .real{top:21px;height:12px;background:var(--real)}
+.gantt .horas{display:grid;grid-template-columns:260px 1fr}
+.gantt .horas div:last-child{display:grid;grid-template-columns:repeat(16,1fr);font-family:var(--mono);font-size:11px;color:var(--muted)}
+.gantt .ahora{position:absolute;top:0;bottom:0;width:2px;background:var(--no)}
+.leyenda{display:flex;gap:16px;font-size:12px;color:var(--muted)}
+.leyenda i{display:inline-block;width:14px;height:10px;border-radius:2px;margin-right:6px;vertical-align:middle}
+.grafico svg{display:block;width:100%;height:auto}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header>
+  <h1>Bitácora Digital de Cargues</h1>
+  <nav role="tablist">
+    <button role="tab" data-v="cargar" aria-selected="true">Cargar listas</button>
+    <button role="tab" data-v="bitacora" aria-selected="false">Bitácora</button>
+    <button role="tab" data-v="agenda" aria-selected="false">Agenda del día</button>
+    <button role="tab" data-v="metricas" aria-selected="false">Métricas por hora</button>
+  </nav>
+  <span class="modo" id="modo"></span>
+</header>
+
+<main>
+  <div id="msg" hidden></div>
+
+  <!-- CARGAR -->
+  <section id="v-cargar">
+    <div class="barra">
+      <button class="btn" id="escanear">Escanear carpeta</button>
+      <span class="modo" id="carpeta"></span>
+      <span class="sep"></span>
+      <label>Fecha <input type="date" id="fechaCargue"></label>
+      <button class="btn primario" id="cargarSel" disabled>Cargar seleccionados</button>
+    </div>
+    <div class="caja" style="margin-top:12px">
+      <table>
+        <thead><tr><th></th><th>Archivo</th><th>Filas</th><th>Revisión</th><th>Campaña</th><th>Estrategia</th><th>Jefe</th><th>Nombre estrategia</th><th>Inicio</th><th>Fin</th></tr></thead>
+        <tbody id="archivos"><tr><td colspan="10" class="vacio">Pulsa "Escanear carpeta" para ver los CSV pendientes.</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- BITÁCORA -->
+  <section id="v-bitacora" hidden>
+    <div class="barra">
+      <label>Fecha <input type="date" id="fechaBit"></label>
+      <span class="sep"></span>
+      <button class="btn" id="sincronizar">Actualizar Excel</button>
+      <button class="btn" id="descargar">Descargar Excel</button>
+    </div>
+    <div class="caja" style="margin-top:12px">
+      <table>
+        <thead><tr><th>Hora inicio</th><th>Hora final</th><th>ID</th><th>Nombre de lista</th><th>Campaña</th><th>Estrategia</th><th>Remarc.</th><th>Jefe</th><th>Cargados</th><th>No válidos</th><th>Gestionado</th><th>Marcación</th><th>% Gestión</th><th>Informe</th><th>Nombre estrategia</th><th>Estado</th><th>Campaña</th></tr></thead>
+        <tbody id="bitacora"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- AGENDA -->
+  <section id="v-agenda" hidden>
+    <div class="barra">
+      <label>Fecha <input type="date" id="fechaAg"></label>
+      <div class="leyenda"><span><i style="background:var(--plan)"></i>Horario planeado</span><span><i style="background:var(--real)"></i>Activa en Wolkvox</span><span><i style="background:var(--no)"></i>Ahora</span></div>
+    </div>
+    <div class="caja" style="margin-top:12px"><div class="gantt" id="gantt"></div></div>
+  </section>
+
+  <!-- MÉTRICAS -->
+  <section id="v-metricas" hidden>
+    <div class="barra">
+      <label>Fecha <input type="date" id="fechaMet"></label>
+      <label>Campaña <select id="campMet"><option value="">Todas</option></select></label>
+      <span class="sep"></span>
+      <button class="btn" id="recolectar">Recolectar ahora</button>
+    </div>
+    <div class="kpis" id="kpis" style="margin-top:12px"></div>
+    <div class="caja grafico" style="margin-top:12px;padding:12px" id="grafico"></div>
+    <div class="caja" style="margin-top:12px">
+      <table><thead><tr><th>Hora</th><th>Campaña</th><th>Agentes conectados</th><th>Registros barridos</th><th>Gestionados</th></tr></thead><tbody id="metricas"></tbody></table>
+    </div>
+  </section>
+</main>
+
+<script>
+const $ = s => document.querySelector(s);
+const hoy = new Date(Date.now() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
+['#fechaCargue','#fechaBit','#fechaAg','#fechaMet'].forEach(id => $(id).value = hoy);
+let campanas = [], catalogos = {}, archivos = [];
+
+async function api(url, opts = {}) {
+  const r = await fetch(url, {headers: {'Content-Type': 'application/json'}, ...opts});
+  const t = await r.text();
+  const d = t ? JSON.parse(t) : null;
+  if (!r.ok) throw new Error(d && d.error ? d.error : ('Error ' + r.status));
+  return d;
+}
+function mensaje(txt, tipo = 'aviso') {
+  const m = $('#msg'); m.className = tipo; m.textContent = txt; m.hidden = !txt;
+  if (txt) setTimeout(() => m.hidden = true, 8000);
+}
+const esc = s => (s ?? '').toString().replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const hhmm = dt => dt ? dt.slice(11,16) : '';
+const t5 = t => t ? t.slice(0,5) : '';
+
+// Pestañas
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('nav button').forEach(x => x.setAttribute('aria-selected', x === b));
+  document.querySelectorAll('main > section').forEach(s => s.hidden = s.id !== 'v-' + b.dataset.v);
+  ({bitacora: cargarBitacora, agenda: cargarAgenda, metricas: cargarMetricas})[b.dataset.v]?.();
+});
+
+async function inicio() {
+  try {
+    [catalogos, campanas] = await Promise.all([api('/api/catalogos'), api('/api/campanas')]);
+    $('#modo').textContent = 'Wolkvox: ' + catalogos.modoWolkvox + (catalogos.autoActivar ? ' · activación por horario' : '');
+    $('#carpeta').textContent = catalogos.carpetaEntrada;
+    $('#campMet').innerHTML += campanas.map(c => `<option value="${esc(c.id)}">${esc(c.id)} · ${esc(c.nombre)}</option>`).join('');
+  } catch (e) { mensaje(e.message, 'error'); }
+}
+
+// ── Cargar ──
+$('#escanear').onclick = async () => {
+  try {
+    archivos = await api('/api/archivos');
+    const opCamp = '<option value="">Elegir…</option>' + campanas.map(c => `<option value="${esc(c.id)}">${esc(c.id)} · ${esc(c.nombre)} (${c.tipo})</option>`).join('');
+    const opJefe = '<option value=""></option>' + catalogos.jefes.map(j => `<option>${esc(j)}</option>`).join('');
+    $('#archivos').innerHTML = archivos.length ? archivos.map((a, i) => `
+      <tr data-i="${i}">
+        <td><input type="checkbox" class="sel" aria-label="Seleccionar ${esc(a.nombre)}"></td>
+        <td title="${esc(a.huella)}">${esc(a.nombre)} ${a.yaCargado ? '<span class="pill p-warn">ya cargado</span>' : ''}</td>
+        <td class="num">${a.filas.toLocaleString('es-CO')}</td>
+        <td class="rev"><button class="btn revisar">Revisar</button></td>
+        <td><select class="camp">${opCamp}</select></td>
+        <td><select class="est"><option>NUEVA</option><option value="REMARCACION">REMARCACIÓN</option></select></td>
+        <td><select class="jefe">${opJefe}</select></td>
+        <td><input class="nest" size="22" placeholder="Ej. Incumplidos hasta 2 días"></td>
+        <td><input type="time" class="hi"></td>
+        <td><input type="time" class="hf"></td>
+      </tr>`).join('') : '<tr><td colspan="10" class="vacio">No hay CSV en la carpeta.</td></tr>';
+    document.querySelectorAll('.sel').forEach(c => c.onchange = actualizarBoton);
+    document.querySelectorAll('.revisar').forEach(b => b.onclick = revisar);
+    actualizarBoton();
+  } catch (e) { mensaje(e.message, 'error'); }
+};
+function actualizarBoton() { $('#cargarSel').disabled = !document.querySelector('.sel:checked'); }
+async function revisar(ev) {
+  const tr = ev.target.closest('tr'); const a = archivos[tr.dataset.i];
+  try {
+    const v = await api('/api/archivos/' + encodeURIComponent(a.nombre) + '/revision');
+    tr.querySelector('.rev').innerHTML = v.erroresEstructura.length
+      ? `<span class="pill p-no" title="${esc(v.erroresEstructura.join('\n'))}">estructura inválida</span>`
+      : `<span class="pill p-ok">${v.validos} válidos</span> ${v.invalidos ? `<span class="pill p-warn" title="${esc(v.ejemplosInvalidos.map(x => 'Línea ' + x.linea + ': ' + x.motivo).join('\n'))}">${v.invalidos} no válidos</span>` : ''}`;
+  } catch (e) { mensaje(e.message, 'error'); }
+}
+$('#cargarSel').onclick = async () => {
+  const filas = [...document.querySelectorAll('.sel:checked')].map(c => c.closest('tr'));
+  const sinCamp = filas.filter(tr => !tr.querySelector('.camp').value);
+  if (sinCamp.length) return mensaje('Elige la campaña de cada archivo seleccionado.');
+  const cargues = filas.map(tr => ({
+    archivo: archivos[tr.dataset.i].nombre, campanaId: tr.querySelector('.camp').value,
+    estrategia: tr.querySelector('.est').value, jefe: tr.querySelector('.jefe').value || null,
+    nombreEstrategia: tr.querySelector('.nest').value || null,
+    horaInicioPlan: tr.querySelector('.hi').value || null, horaFinPlan: tr.querySelector('.hf').value || null,
+    fecha: $('#fechaCargue').value }));
+  $('#cargarSel').disabled = true; $('#cargarSel').textContent = 'Cargando…';
+  try {
+    const r = await api('/api/cargues', {method: 'POST', body: JSON.stringify({cargues})});
+    const fallidos = r.filter(x => x.estado === 'FALLIDO');
+    mensaje(fallidos.length ? `${fallidos.length} cargue(s) fallaron: ${fallidos.map(f => f.error).join(' · ')}`
+      : `${r.length} lista(s) cargadas: ${r.reduce((s, x) => s + x.registrosCargados, 0).toLocaleString('es-CO')} registros.`, fallidos.length ? 'error' : 'aviso');
+    $('#escanear').click();
+  } catch (e) { mensaje(e.message, 'error'); }
+  $('#cargarSel').textContent = 'Cargar seleccionados'; actualizarBoton();
+};
+
+// ── Bitácora ──
+$('#fechaBit').onchange = cargarBitacora;
+async function cargarBitacora() {
+  try {
+    const filas = await api('/api/cargues?fecha=' + $('#fechaBit').value);
+    $('#bitacora').innerHTML = filas.length ? filas.map(c => `
+      <tr data-id="${c.id}">
+        <td>${hhmm(c.inicioCampana) || '<span style="color:var(--muted)">' + t5(c.horaInicioPlan) + '</span>'}</td>
+        <td>${hhmm(c.finCampana) || '<span style="color:var(--muted)">' + t5(c.horaFinPlan) + '</span>'}</td>
+        <td>${esc(c.campanaId)}</td><td>${esc(c.nombreLista)}</td><td>${esc(c.campanaNombre)}</td>
+        <td>${c.estrategia === 'REMARCACION' ? 'REMARCACIÓN' : 'NUEVA'}</td><td class="num">${c.remarcacion}</td>
+        <td>${esc(c.jefe)}</td>
+        <td class="num">${c.registrosCargados.toLocaleString('es-CO')}</td>
+        <td class="num">${c.registrosNoValidos ? `<span class="pill p-warn">${c.registrosNoValidos}</span>` : 0}</td>
+        <td class="num">${c.totalGestionado ?? ''}</td><td>${esc(c.tipoMarcacion)}</td>
+        <td class="num">${c.porcentajeGestion ?? 0}%</td>
+        <td><button class="btn inf">${c.descargaInforme === 'OK' ? '<span class="pill p-ok">OK</span>' : '<span class="pill p-warn">PDT</span>'}</button></td>
+        <td>${esc(c.nombreEstrategia)}</td>
+        <td>${estado(c)}</td>
+        <td>${c.registrosCargados ? `<button class="btn act" data-c="${esc(c.campanaId)}" data-a="${c.inicioCampana && !c.finCampana ? 'detener' : 'iniciar'}">${c.inicioCampana && !c.finCampana ? 'Detener' : 'Iniciar'}</button>` : ''}</td>
+      </tr>`).join('') : '<tr><td colspan="17" class="vacio">No hay cargues en esta fecha.</td></tr>';
+    document.querySelectorAll('.inf').forEach(b => b.onclick = async () => {
+      const tr = b.closest('tr'); const ok = b.textContent.trim() === 'OK';
+      await api('/api/cargues/' + tr.dataset.id, {method: 'PATCH', body: JSON.stringify({descargaInforme: ok ? 'PDT' : 'OK'})});
+      cargarBitacora();
+    });
+    document.querySelectorAll('.act').forEach(b => b.onclick = async () => {
+      try { await api(`/api/campanas/${b.dataset.c}/${b.dataset.a}`, {method: 'POST'}); cargarBitacora(); }
+      catch (e) { mensaje(e.message, 'error'); }
+    });
+  } catch (e) { mensaje(e.message, 'error'); }
+}
+function estado(c) {
+  const m = {CARGADO: 'p-ok', CARGADO_CON_RECHAZOS: 'p-warn', FALLIDO: 'p-no', CARGANDO: 'p-info', PENDIENTE: 'p-info'};
+  return `<span class="pill ${m[c.estado]}" title="${esc(c.error || c.archivoRechazados || '')}">${c.estado.replaceAll('_', ' ').toLowerCase()}</span>`;
+}
+$('#sincronizar').onclick = async () => {
+  try { const r = await api('/api/bitacora/excel/sincronizar', {method: 'POST'}); mensaje('Excel actualizado: ' + r.ruta); }
+  catch (e) { mensaje(e.message, 'error'); }
+};
+$('#descargar').onclick = () => location.href = '/api/bitacora/excel';
+
+// ── Agenda ──
+$('#fechaAg').onchange = cargarAgenda;
+const H0 = 6, H1 = 22; // franja visible 6:00 a 22:00
+const pos = h => Math.max(0, Math.min(100, (h - H0) / (H1 - H0) * 100));
+const aHoras = t => t ? (+t.slice(0,2) + +t.slice(3,5)/60) : null;
+async function cargarAgenda() {
+  const filas = await api('/api/cargues?fecha=' + $('#fechaAg').value);
+  let html = `<div class="horas"><div></div><div>${Array.from({length:16}, (_, i) => `<span>${H0+i}:00</span>`).join('')}</div></div>`;
+  const ahora = new Date(); const esHoy = $('#fechaAg').value === hoy;
+  const hAhora = ahora.getHours() + ahora.getMinutes()/60;
+  for (const c of filas) {
+    const pi = aHoras(c.horaInicioPlan), pf = aHoras(c.horaFinPlan);
+    const ri = c.inicioCampana ? aHoras(c.inicioCampana.slice(11)) : null;
+    const rf = c.finCampana ? aHoras(c.finCampana.slice(11)) : (ri != null && esHoy ? hAhora : ri);
+    html += `<div class="fila"><div class="nom" title="${esc(c.nombreLista)}"><b>${esc(c.campanaId)}</b> ${esc(c.nombreLista)}</div><div class="pista">
+      ${pi != null ? `<div class="bar plan" style="left:${pos(pi)}%;width:${pos(pf ?? pi + 1) - pos(pi)}%">${t5(c.horaInicioPlan)}–${t5(c.horaFinPlan)}</div>` : ''}
+      ${ri != null ? `<div class="bar real" style="left:${pos(ri)}%;width:${Math.max(.4, pos(rf) - pos(ri))}%"></div>` : ''}
+      ${esHoy ? `<div class="ahora" style="left:${pos(hAhora)}%"></div>` : ''}
+    </div></div>`;
+  }
+  if (!filas.length) html += '<div class="vacio">No hay listas programadas en esta fecha.</div>';
+  $('#gantt').innerHTML = html;
+}
+
+// ── Métricas ──
+$('#fechaMet').onchange = cargarMetricas; $('#campMet').onchange = cargarMetricas;
+$('#recolectar').onclick = async () => {
+  try { const r = await api('/api/metricas/recolectar?fecha=' + $('#fechaMet').value, {method: 'POST'}); mensaje(r.cortes + ' cortes guardados.'); cargarMetricas(); }
+  catch (e) { mensaje(e.message, 'error'); }
+};
+async function cargarMetricas() {
+  const [cortes, cargues] = await Promise.all([api('/api/metricas?fecha=' + $('#fechaMet').value), api('/api/cargues?fecha=' + $('#fechaMet').value)]);
+  const f = $('#campMet').value; const datos = cortes.filter(c => !f || c.campanaId === f);
+  const cg = cargues.filter(c => !f || c.campanaId === f);
+  const sum = (a, k) => a.reduce((s, x) => s + (x[k] || 0), 0);
+  const cargados = sum(cg, 'registrosCargados'), gest = sum(cg, 'totalGestionado');
+  $('#kpis').innerHTML = [
+    ['Registros cargados', cargados.toLocaleString('es-CO')],
+    ['No válidos al cargar', sum(cg, 'registrosNoValidos').toLocaleString('es-CO')],
+    ['Barridos en el día', sum(datos, 'registrosBarridos').toLocaleString('es-CO')],
+    ['% gestión', cargados ? Math.round(gest * 100 / cargados) + '%' : '0%'],
+    ['Máx. agentes en una hora', Math.max(0, ...porHora(datos).map(h => h.agentesConectados))]
+  ].map(([t, v]) => `<div class="kpi"><b>${v}</b><span>${t}</span></div>`).join('');
+  $('#metricas').innerHTML = datos.length ? datos.map(m => `<tr><td>${m.hora.slice(11,16)}</td><td>${esc(m.campanaId)}</td><td class="num">${m.agentesConectados}</td><td class="num">${m.registrosBarridos}</td><td class="num">${m.gestionados}</td></tr>`).join('')
+    : '<tr><td colspan="5" class="vacio">Sin cortes todavía. Se guardan solos cada hora cuando hay campañas activas.</td></tr>';
+  dibujar(porHora(datos));
+}
+function porHora(datos) {
+  const m = {};
+  datos.forEach(d => { const h = d.hora.slice(11,13); m[h] ??= {h, agentesConectados: 0, registrosBarridos: 0}; m[h].agentesConectados += d.agentesConectados; m[h].registrosBarridos += d.registrosBarridos; });
+  return Object.values(m).sort((a, b) => a.h.localeCompare(b.h));
+}
+function dibujar(datos) {
+  if (!datos.length) { $('#grafico').innerHTML = '<div class="vacio">Registros barridos y agentes conectados por hora aparecerán aquí.</div>'; return; }
+  // Eje fijo de 6:00 a 21:00 para que las horas se comparen entre días
+  const horas = Array.from({length: H1 - H0}, (_, i) => String(H0 + i).padStart(2, '0'));
+  const m = Object.fromEntries(datos.map(x => [x.h, x]));
+  const h = horas.map(x => m[x] || {h: x, agentesConectados: 0, registrosBarridos: 0});
+  const W = 900, H = 220, P = 36, max = Math.max(...h.map(x => x.registrosBarridos), 1), maxA = Math.max(...h.map(x => x.agentesConectados), 1);
+  const bw = (W - P * 2) / h.length, y = v => H - P - (H - P * 2) * v;
+  const barras = h.map((x, i) => { const bh = (H - P * 2) * x.registrosBarridos / max; return `<rect x="${P + i*bw + 4}" y="${H - P - bh}" width="${bw - 8}" height="${bh}" fill="var(--plan)"><title>${x.h}:00 · ${x.registrosBarridos} barridos</title></rect><text x="${P + i*bw + bw/2}" y="${H - P + 14}" text-anchor="middle" font-size="11" fill="var(--muted)">${+x.h}h</text>`; }).join('');
+  const conDatos = h.map((x, i) => [x, i]).filter(([x]) => m[x.h]);
+  const linea = conDatos.map(([x, i]) => `${P + i*bw + bw/2},${y(x.agentesConectados / maxA)}`).join(' ');
+  $('#grafico').innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Barridos y agentes por hora">
+    <line x1="${P}" y1="${H-P}" x2="${W-P}" y2="${H-P}" stroke="var(--line)"/>${barras}
+    <polyline points="${linea}" fill="none" stroke="var(--accent)" stroke-width="2"/>
+    ${conDatos.map(([x, i]) => `<circle cx="${P + i*bw + bw/2}" cy="${y(x.agentesConectados / maxA)}" r="3" fill="var(--accent)"><title>${x.agentesConectados} agentes</title></circle>`).join('')}
+    <text x="${P}" y="16" font-size="11" fill="var(--muted)">Barras: registros barridos (máx. ${max}) · Línea: agentes conectados (máx. ${maxA})</text></svg>`;
+}
+
+inicio();
+</script>
+</body>
+</html>
