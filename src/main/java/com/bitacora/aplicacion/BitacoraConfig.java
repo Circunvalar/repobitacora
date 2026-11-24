@@ -66,14 +66,14 @@ public interface BitacoraConfig {
     }
 
     interface Wolkvox {
-        /** simulado | http */
-        @WithDefault("simulado")
-        String modo();
-        Optional<String> servidor();
-        Optional<String> token();
+        /** Dirección de la API; {servidor} se reemplaza por el número de servidor de cada campaña grande. */
+        @WithDefault("https://wv{servidor}.wolkvox.com/api/v2/")
+        String urlBase();
         @WithDefault("2")
         int maxConcurrencia();
         Endpoints endpoints();
+        /** Columna normalizada del CSV = campo de la API add_record. */
+        List<String> columnas();
 
         /** Rutas relativas a https://wv{servidor}.wolkvox.com/api/v2/. Se confirman con la colección de Postman. */
         interface Endpoints {
@@ -81,8 +81,8 @@ public interface BitacoraConfig {
             String cargarRegistros();
             String iniciar();
             String detener();
-            String agentesPorHora();
-            String interacciones();
+            String agentesPorCampana();
+            String intentosCampana();
         }
     }
 
@@ -90,6 +90,9 @@ public interface BitacoraConfig {
         /** Activa o detiene automáticamente según el horario planeado de cada cargue. */
         @WithDefault("false")
         boolean autoActivar();
+        /** Intervalo del escaneo de campañas activas/inactivas (p. ej. 5m); "off" lo desactiva. */
+        @WithDefault("5m")
+        String escaneo();
     }
 
     interface Catalogos {

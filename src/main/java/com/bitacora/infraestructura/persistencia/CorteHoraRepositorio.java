@@ -12,8 +12,8 @@ import java.util.Optional;
 @ApplicationScoped
 public class CorteHoraRepositorio implements PanacheRepository<CorteHoraEntidad> {
 
-    public Optional<CorteHoraEntidad> buscar(String campanaId, LocalDateTime hora) {
-        return find("campanaId = ?1 and hora = ?2", campanaId, hora).firstResultOptional();
+    public Optional<CorteHoraEntidad> buscar(Long operacionId, String campanaId, LocalDateTime hora) {
+        return find("operacionId = ?1 and campanaId = ?2 and hora = ?3", operacionId, campanaId, hora).firstResultOptional();
     }
 
     public List<CorteHoraEntidad> delDia(LocalDate fecha) {

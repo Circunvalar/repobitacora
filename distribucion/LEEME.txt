@@ -1,0 +1,36 @@
+BITÁCORA DIGITAL DE CARGUES WOLKVOX · v2.0
+============================================
+
+CÓMO SE USA
+1. Doble clic en Iniciar-Bitacora.bat.
+   Se abre una ventana negra (no la cierre) y luego el navegador en http://localhost:4444
+2. Pestaña "Campañas y servidores": registre cada campaña principal con
+     Nombre    (ej. Cobranzas)
+     Servidor  (los 4 dígitos de wvXXXX.wolkvox.com)
+     Token     (Manager → Configuración → Integraciones → Tokens)
+   Al pulsar "Validar y guardar" el token se prueba contra Wolkvox. Si falla, el programa
+   dice por qué (token inválido, servidor no encontrado, límite de consumos, etc.).
+3. En cada campaña principal agregue los números de campaña que va a usar.
+   Cada número se comprueba en Wolkvox y queda guardado para los próximos cargues.
+4. Deje los CSV a cargar en la carpeta datos\entrada (o la que ponga en la configuración).
+5. Pestaña "Cargar listas": elija la campaña principal, escriba o elija el número de campaña,
+   escanee la carpeta, marque los archivos y pulse "Cargar seleccionados".
+
+NO HAY QUE INSTALAR NADA
+- La base de datos va dentro del programa (H2). Se guarda en %LOCALAPPDATA%\BitacoraDigital\db
+  (fuera de OneDrive, para que la sincronización no la dañe).
+- Java: si el equipo no tiene Java 21, la primera vez el programa descarga un Java portátil
+  (Eclipse Temurin, ~45 MB) dentro de la carpeta "jre". No pide permisos de administrador.
+  Si el equipo no tiene internet, copie una carpeta "jre" de Java 21 junto a este archivo.
+
+QUÉ HACE
+- Cargar listas: primero la campaña principal y el número de campaña, luego los archivos.
+- Errores: aparecen en recuadros rojos con lo que pasó y qué hacer. No se cierran solos.
+- Campañas en vivo: cada 5 minutos revisa, en cada servidor, qué campañas están activas o detenidas.
+  Si alguien enciende o apaga una campaña en Wolkvox Manager, aparece en el histórico
+  y la hora pasa sola a la bitácora. Todo se actualiza en pantalla sin recargar.
+- Bitácora: elija una hora de gestión (06:00 ... 21:00) para ver qué listas estuvieron activas,
+  agentes conectados, registros barridos, gestionados y las activaciones de esa hora.
+
+DETENER: cierre la ventana negra.
+REGISTRO DE ERRORES: datos\logs\bitacora.log

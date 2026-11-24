@@ -20,7 +20,7 @@ public class CarguesRecurso {
 
     public record SolicitudLote(@NotEmpty List<@Valid ItemCargue> cargues) {}
 
-    public record ItemCargue(@NotBlank String archivo, @NotBlank String campanaId,
+    public record ItemCargue(@jakarta.validation.constraints.NotNull Long operacionId, @NotBlank String archivo, @NotBlank String campanaId,
                              com.bitacora.dominio.modelo.TipoEstrategia estrategia, String jefe,
                              String nombreEstrategia, java.time.LocalTime horaInicioPlan,
                              java.time.LocalTime horaFinPlan, String observacion, LocalDate fecha) {}
@@ -41,7 +41,7 @@ public class CarguesRecurso {
     /** Carga uno o varios archivos, cada uno a su campaña. Se procesan en orden. */
     @POST
     public List<CargueDto> cargar(@Valid SolicitudLote s) {
-        return s.cargues().stream().map(i -> cargues.cargar(new CargueServicio.Solicitud(i.archivo(), i.campanaId(),
+        return s.cargues().stream().map(i -> cargues.cargar(new CargueServicio.Solicitud(i.operacionId(), i.archivo(), i.campanaId(),
                 i.estrategia(), i.jefe(), i.nombreEstrategia(), i.horaInicioPlan(), i.horaFinPlan(), i.observacion(),
                 i.fecha()))).map(CargueDto::de).toList();
     }
