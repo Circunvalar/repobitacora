@@ -15,22 +15,26 @@ public class CargueRepositorio implements PanacheRepository<CargueEntidad> {
         return list("fecha", Sort.by("horaInicioPlan").and("id"), fecha);
     }
 
+    public long deOperacion(long operacionId) {
+        return count("operacionId", operacionId);
+    }
+
     public List<CargueEntidad> todos() {
         return listAll(Sort.by("fecha").and("id"));
     }
 
-    public List<CargueEntidad> activosDeCampanaEnFecha(String campanaId, LocalDate fecha) {
-        return list("campanaId = ?1 and fecha = ?2 and estado in ?3", campanaId, fecha,
+    public List<CargueEntidad> activosDeCampanaEnFecha(Long operacionId, String campanaId, LocalDate fecha) {
+        return list("operacionId = ?1 and campanaId = ?2 and fecha = ?3 and estado in ?4", operacionId, campanaId, fecha,
                 List.of(EstadoCargue.CARGADO, EstadoCargue.CARGADO_CON_RECHAZOS));
     }
 
-    public long previosDeLista(String campanaId, String listaBase) {
-        return count("campanaId = ?1 and listaBase = ?2 and estado in ?3", campanaId, listaBase,
+    public long previosDeLista(Long operacionId, String campanaId, String listaBase) {
+        return count("operacionId = ?1 and campanaId = ?2 and listaBase = ?3 and estado in ?4", operacionId, campanaId, listaBase,
                 List.of(EstadoCargue.CARGADO, EstadoCargue.CARGADO_CON_RECHAZOS));
     }
 
-    public boolean huellaYaCargada(String huella, String campanaId) {
-        return count("huella = ?1 and campanaId = ?2 and estado in ?3", huella, campanaId,
+    public boolean huellaYaCargada(String huella, Long operacionId, String campanaId) {
+        return count("huella = ?1 and operacionId = ?2 and campanaId = ?3 and estado in ?4", huella, operacionId, campanaId,
                 List.of(EstadoCargue.CARGADO, EstadoCargue.CARGADO_CON_RECHAZOS)) > 0;
     }
 

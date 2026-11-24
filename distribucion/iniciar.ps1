@@ -17,10 +17,10 @@ if (Test-Path $cfg) {
 }
 $url = "http://localhost:$puerto"
 
-# Si el programa llegó partido en pedazos (bitacora-digital.jar.part1, part2...), se une una sola vez.
+# Si el programa llegó partido en pedazos (bitacora-digital.jar.part1, part2...), se une (y reemplaza la versión anterior).
 $jar = Join-Path $base 'bitacora-digital.jar'
 $partes = Get-ChildItem $base -Filter 'bitacora-digital.jar.part*' | Sort-Object { [int]($_.Name -replace '.*part', '') }
-if (-not (Test-Path $jar) -and $partes) {
+if ($partes) {
     Write-Host 'Uniendo las partes del programa...'
     $salidaJar = [IO.File]::Create($jar)
     foreach ($p in $partes) { $b = [IO.File]::ReadAllBytes($p.FullName); $salidaJar.Write($b, 0, $b.Length) }

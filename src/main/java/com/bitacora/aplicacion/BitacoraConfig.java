@@ -66,27 +66,14 @@ public interface BitacoraConfig {
     }
 
     interface Wolkvox {
-        /** auto | http | simulado. "auto" usa http cuando hay servidor y token. */
-        @WithDefault("auto")
-        String modo();
-        Optional<String> servidor();
-        Optional<String> token();
-        /** Solo para pruebas: reemplaza https://wv{servidor}.wolkvox.com/api/v2/. */
-        Optional<String> urlBase();
+        /** Dirección de la API; {servidor} se reemplaza por el número de servidor de cada campaña grande. */
+        @WithDefault("https://wv{servidor}.wolkvox.com/api/v2/")
+        String urlBase();
         @WithDefault("2")
         int maxConcurrencia();
         Endpoints endpoints();
         /** Columna normalizada del CSV = campo de la API add_record. */
         List<String> columnas();
-
-        /** true cuando la app debe hablar con la API real. */
-        default boolean usarHttp() {
-            String m = modo().trim().toLowerCase(java.util.Locale.ROOT);
-            if (m.equals("http")) return true;
-            if (m.equals("simulado")) return false;
-            if (urlBase().isPresent() && token().filter(x -> !x.isBlank()).isPresent()) return true;
-            return servidor().filter(x -> !x.isBlank()).isPresent() && token().filter(x -> !x.isBlank()).isPresent();
-        }
 
         /** Rutas relativas a https://wv{servidor}.wolkvox.com/api/v2/. Se confirman con la colección de Postman. */
         interface Endpoints {

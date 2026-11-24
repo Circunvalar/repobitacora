@@ -18,11 +18,12 @@ public class AvisosCampanas {
      * tipo: CAMBIO (una campaña se activó o se detuvo), ESCANEO (terminó una revisión), PING (mantener la conexión).
      * evento: INICIO | DETENCION cuando tipo = CAMBIO.
      */
-    public record Aviso(String tipo, String campanaId, String campanaNombre, String evento, LocalDateTime momento,
-                        String origen, Integer activas, Integer revisadas, String error) {
+    public record Aviso(String tipo, Long operacionId, String operacionNombre, String campanaId, String campanaNombre,
+                        String evento, LocalDateTime momento, String origen, Integer activas, Integer revisadas,
+                        String error, String sugerencia) {
 
         static Aviso ping() {
-            return new Aviso("PING", null, null, null, null, null, null, null, null);
+            return new Aviso("PING", null, null, null, null, null, null, null, null, null, null, null);
         }
     }
 

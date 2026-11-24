@@ -2,16 +2,11 @@ package com.bitacora.aplicacion;
 
 import com.bitacora.dominio.modelo.Campana;
 import com.bitacora.dominio.puerto.WolkvoxPuerto;
-import com.bitacora.infraestructura.persistencia.CampanaEstadoEntidad;
-import com.bitacora.infraestructura.persistencia.CampanaEstadoRepositorio;
-import com.bitacora.infraestructura.persistencia.CargueEntidad;
-import com.bitacora.infraestructura.persistencia.CargueRepositorio;
-import com.bitacora.infraestructura.persistencia.EventoCampanaEntidad;
-import com.bitacora.infraestructura.persistencia.EventoCampanaRepositorio;
+import com.bitacora.infraestructura.persistencia.*;
+import com.bitacora.infraestructura.wolkvox.WolkvoxException;
 import io.quarkus.narayana.jta.QuarkusTransaction;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Named;
 import org.jboss.logging.Logger;
 
 import java.time.Clock;
@@ -19,18 +14,18 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
- * Catálogo de campañas y control de activación.
+ * Control de activación de las campañas registradas.
  * <ul>
  *   <li>Cuando la app inicia o detiene una campaña, guarda la hora exacta (HORA INICIO / HORA FINAL de la bitácora).</li>
- *   <li>Cada {@code bitacora.campanas.escaneo} (5 min por defecto) consulta en Wolkvox qué campañas están activas;
- *       si alguna cambió de estado por fuera de la app, deja el evento en el historial y actualiza la bitácora.</li>
- *   <li>Cada cambio se publica en tiempo real a las pantallas abiertas.</li>
+ *   <li>Cada {@code bitacora.campanas.escaneo} (5 min por defecto) consulta cada servidor de Wolkvox una vez y revisa
+ *       qué campañas registradas están activas; si alguna cambió por fuera de la app, deja el evento en el historial y
+ *       actualiza la bitácora.</li>
+ *   <li>Cada cambio y cada error se publica en tiempo real a las pantallas abiertas.</li>
  * </ul>
  */
 @ApplicationScoped
@@ -38,64 +33,56 @@ public class CampanaServicio {
 
     private static final Logger LOG = Logger.getLogger(CampanaServicio.class);
 
-    public record ResultadoEscaneo(LocalDateTime momento, int revisadas, int activas, int cambios, String error) {}
+    public record ErrorEscaneo(Long operacionId, String operacion, String titulo, String detalle, String sugerencia) {}
+
+    public record ResultadoEscaneo(LocalDateTime momento, int revisadas, int activas, int cambios, List<ErrorEscaneo> errores) {}
 
     private final WolkvoxPuerto wolkvox;
+    private final OperacionServicio operaciones;
+    private final OperacionRepositorio operacionRepo;
+    private final CampanaRepositorio campanaRepo;
     private final CargueRepositorio cargues;
     private final EventoCampanaRepositorio eventos;
-    private final CampanaEstadoRepositorio estados;
     private final AvisosCampanas avisos;
     private final BitacoraConfig config;
     private final Clock reloj;
-    private final Map<String, Campana> cache = new ConcurrentHashMap<>();
     private volatile ResultadoEscaneo ultimoEscaneo;
 
-    public CampanaServicio(@Named("wolkvoxActivo") WolkvoxPuerto wolkvox, CargueRepositorio cargues,
-                           EventoCampanaRepositorio eventos, CampanaEstadoRepositorio estados, AvisosCampanas avisos,
-                           BitacoraConfig config, Clock reloj) {
+    public CampanaServicio(WolkvoxPuerto wolkvox, OperacionServicio operaciones, OperacionRepositorio operacionRepo,
+                           CampanaRepositorio campanaRepo, CargueRepositorio cargues, EventoCampanaRepositorio eventos,
+                           AvisosCampanas avisos, BitacoraConfig config, Clock reloj) {
         this.wolkvox = wolkvox;
+        this.operaciones = operaciones;
+        this.operacionRepo = operacionRepo;
+        this.campanaRepo = campanaRepo;
         this.cargues = cargues;
         this.eventos = eventos;
-        this.estados = estados;
         this.avisos = avisos;
         this.config = config;
         this.reloj = reloj;
     }
 
-    /** Campañas existentes en el servidor de Wolkvox (con refrescar=true se vuelven a pedir). */
-    public List<Campana> listar(boolean refrescar) {
-        if (refrescar || cache.isEmpty()) {
-            List<Campana> todas = wolkvox.campanas();
-            cache.clear();
-            todas.forEach(c -> cache.put(c.id(), c));
-        }
-        return cache.values().stream().sorted((a, b) -> a.nombre().compareToIgnoreCase(b.nombre())).toList();
+    public LocalDateTime iniciar(long operacionId, String campanaId, String origen) {
+        return cambiar(operacionId, campanaId, true, origen);
     }
 
-    public Campana buscar(String id) {
-        if (!cache.containsKey(id)) listar(true);
-        Campana c = cache.get(id);
-        if (c == null) throw new NoSuchElementException("La campaña " + id + " no existe en Wolkvox");
-        return c;
+    public LocalDateTime detener(long operacionId, String campanaId, String origen) {
+        return cambiar(operacionId, campanaId, false, origen);
     }
 
-    public LocalDateTime iniciar(String campanaId, String origen) {
-        Campana c = buscar(campanaId);
-        wolkvox.iniciarCampana(c);
+    private LocalDateTime cambiar(long operacionId, String campanaId, boolean activar, String origen) {
+        record Ctx(OperacionEntidad op, CampanaEntidad camp) {}
+        Ctx ctx = QuarkusTransaction.requiringNew().call(() ->
+                new Ctx(operaciones.entidad(operacionId), operaciones.campanaRegistrada(operacionId, campanaId)));
+        Campana c = ctx.camp().aCampana();
+        if (activar) wolkvox.iniciarCampana(ctx.op().conexion(), c);
+        else wolkvox.detenerCampana(ctx.op().conexion(), c);
         LocalDateTime ahora = ahora();
-        cache.put(c.id(), new Campana(c.id(), c.nombre(), c.tipo(), true, c.registros()));
-        QuarkusTransaction.requiringNew().run(() -> aplicarCambio(c, true, ahora, origen, true));
-        publicarCambio(c, true, ahora, origen);
-        return ahora;
-    }
-
-    public LocalDateTime detener(String campanaId, String origen) {
-        Campana c = buscar(campanaId);
-        wolkvox.detenerCampana(c);
-        LocalDateTime ahora = ahora();
-        cache.put(c.id(), new Campana(c.id(), c.nombre(), c.tipo(), false, c.registros()));
-        QuarkusTransaction.requiringNew().run(() -> aplicarCambio(c, false, ahora, origen, true));
-        publicarCambio(c, false, ahora, origen);
+        QuarkusTransaction.requiringNew().run(() -> {
+            CampanaEntidad e = campanaRepo.findById(ctx.camp().id);
+            aplicarCambio(ctx.op(), e, activar, ahora, origen);
+        });
+        publicarCambio(ctx.op(), ctx.camp(), activar, ahora, origen);
         return ahora;
     }
 
@@ -105,58 +92,75 @@ public class CampanaServicio {
         escanear();
     }
 
-    /** Pide a Wolkvox el estado de todas las campañas y registra los cambios. */
+    /** Una consulta por servidor (information.php?api=campaigns) y se comparan las campañas registradas. */
     public synchronized ResultadoEscaneo escanear() {
         LocalDateTime ahora = ahora();
-        List<Campana> todas;
-        try {
-            todas = listar(true);
-        } catch (RuntimeException e) {
-            LOG.errorf("Escaneo de campañas falló: %s", e.getMessage());
-            ultimoEscaneo = new ResultadoEscaneo(ahora, 0, 0, 0, e.getMessage());
-            avisos.publicar(new AvisosCampanas.Aviso("ESCANEO", null, null, null, ahora, "ESCANEO", null, null, e.getMessage()));
-            return ultimoEscaneo;
-        }
-        List<Campana> cambiadas = QuarkusTransaction.requiringNew().call(() -> {
-            List<Campana> cambios = new java.util.ArrayList<>();
-            for (Campana c : todas) {
-                CampanaEstadoEntidad e = estados.findById(c.id());
-                if (e == null) {
-                    e = new CampanaEstadoEntidad();
-                    e.campanaId = c.id();
-                    e.activa = c.activa();
-                    e.nombre = c.nombre();
-                    e.tipo = c.tipo();
-                    e.registros = c.registros();
-                    e.ultimaRevision = ahora;
-                    estados.persist(e);
-                } else if (c.activa() != null && !c.activa().equals(e.activa)) {
-                    aplicarCambio(c, c.activa(), ahora, "ESCANEO", false);
-                    e.activa = c.activa();
-                    e.desde = ahora;
-                    cambios.add(c);
-                }
-                e.nombre = c.nombre();
-                e.tipo = c.tipo();
-                e.registros = c.registros();
-                e.ultimaRevision = ahora;
+        List<OperacionEntidad> ops = QuarkusTransaction.requiringNew().call(operacionRepo::vigentes);
+        int revisadas = 0, activas = 0, cambios = 0;
+        List<ErrorEscaneo> errores = new ArrayList<>();
+        for (OperacionEntidad op : ops) {
+            List<CampanaEntidad> registradas = QuarkusTransaction.requiringNew().call(() -> campanaRepo.deOperacion(op.id));
+            if (registradas.isEmpty()) continue;
+            Map<String, Campana> servidor;
+            try {
+                servidor = wolkvox.campanas(op.conexion()).stream().collect(Collectors.toMap(Campana::id, Function.identity(), (a, b) -> a));
+            } catch (WolkvoxException e) {
+                LOG.errorf("Escaneo de %s (%s) falló: %s", op.nombre, op.conexion(), e.resumen());
+                errores.add(new ErrorEscaneo(op.id, op.nombre, e.titulo(), e.getMessage(), e.sugerencia()));
+                QuarkusTransaction.requiringNew().run(() -> {
+                    OperacionEntidad x = operacionRepo.findById(op.id);
+                    x.ultimoError = recortar(e.resumen() + " · " + e.sugerencia());
+                    x.ultimoEscaneo = ahora;
+                    if (e.tipo() == WolkvoxException.Tipo.TOKEN) x.tokenValido = false;
+                });
+                avisos.publicar(new AvisosCampanas.Aviso("ERROR", op.id, op.nombre, null, null, null, ahora, "ESCANEO",
+                        null, null, e.titulo() + ": " + e.getMessage(), e.sugerencia()));
+                continue;
             }
-            return cambios;
-        });
-        cambiadas.forEach(c -> publicarCambio(c, c.estaActiva(), ahora, "ESCANEO"));
-        int activas = (int) todas.stream().filter(Campana::estaActiva).count();
-        ultimoEscaneo = new ResultadoEscaneo(ahora, todas.size(), activas, cambiadas.size(), null);
-        avisos.publicar(new AvisosCampanas.Aviso("ESCANEO", null, null, null, ahora, "ESCANEO", activas, todas.size(), null));
-        if (!cambiadas.isEmpty()) LOG.infof("Escaneo: %d cambio(s) de estado en %d campañas", cambiadas.size(), todas.size());
+            List<CampanaEntidad> cambiadas = QuarkusTransaction.requiringNew().call(() -> {
+                List<CampanaEntidad> lista = new ArrayList<>();
+                OperacionEntidad x = operacionRepo.findById(op.id);
+                x.ultimoEscaneo = ahora;
+                x.ultimoError = null;
+                x.tokenValido = true;
+                for (CampanaEntidad r : campanaRepo.deOperacion(op.id)) {
+                    Campana c = servidor.get(r.campanaId);
+                    r.ultimaRevision = ahora;
+                    if (c == null) {
+                        r.ultimoError = "La campaña ya no aparece en el servidor wv" + op.servidor;
+                        continue;
+                    }
+                    r.ultimoError = null;
+                    r.nombre = c.nombre();
+                    r.tipo = c.tipo();
+                    r.registros = c.registros();
+                    if (c.activa() != null && r.activa != null && !c.activa().equals(r.activa)) {
+                        aplicarCambio(x, r, c.activa(), ahora, "ESCANEO");
+                        lista.add(r);
+                    } else if (r.activa == null) {
+                        r.activa = c.activa();
+                    }
+                }
+                return lista;
+            });
+            for (CampanaEntidad r : cambiadas) publicarCambio(op, r, Boolean.TRUE.equals(r.activa), ahora, "ESCANEO");
+            for (CampanaEntidad r : registradas) {
+                Campana c = servidor.get(r.campanaId);
+                if (c == null) continue;
+                revisadas++;
+                if (c.estaActiva()) activas++;
+            }
+            cambios += cambiadas.size();
+        }
+        ultimoEscaneo = new ResultadoEscaneo(ahora, revisadas, activas, cambios, errores);
+        avisos.publicar(new AvisosCampanas.Aviso("ESCANEO", null, null, null, null, null, ahora, "ESCANEO", activas, revisadas,
+                errores.isEmpty() ? null : errores.size() + " campaña(s) principal(es) con error", null));
+        if (cambios > 0) LOG.infof("Escaneo: %d cambio(s) de estado en %d campañas", cambios, revisadas);
         return ultimoEscaneo;
     }
 
     public ResultadoEscaneo ultimoEscaneo() {
         return ultimoEscaneo;
-    }
-
-    public List<CampanaEstadoEntidad> estados() {
-        return QuarkusTransaction.joiningExisting().call(estados::todas);
     }
 
     public List<EventoCampanaEntidad> historial(LocalDateTime desde, LocalDateTime hasta) {
@@ -167,15 +171,17 @@ public class CampanaServicio {
      * Deja el evento en el historial y pasa la hora a la bitácora: al activarse, HORA INICIO de los cargues
      * del día que aún no la tienen; al detenerse, HORA FINAL de los que estaban activos.
      */
-    private void aplicarCambio(Campana c, boolean activa, LocalDateTime momento, String origen, boolean actualizarEstado) {
+    private void aplicarCambio(OperacionEntidad op, CampanaEntidad c, boolean activa, LocalDateTime momento, String origen) {
         EventoCampanaEntidad ev = new EventoCampanaEntidad();
-        ev.campanaId = c.id();
-        ev.campanaNombre = c.nombre();
+        ev.operacionId = op.id;
+        ev.operacionNombre = op.nombre;
+        ev.campanaId = c.campanaId;
+        ev.campanaNombre = c.nombre;
         ev.tipo = activa ? EventoCampanaEntidad.Tipo.INICIO : EventoCampanaEntidad.Tipo.DETENCION;
         ev.momento = momento;
         ev.origen = origen;
         eventos.persist(ev);
-        for (CargueEntidad cg : cargues.activosDeCampanaEnFecha(c.id(), momento.toLocalDate())) {
+        for (CargueEntidad cg : cargues.activosDeCampanaEnFecha(op.id, c.campanaId, momento.toLocalDate())) {
             if (activa) {
                 if (cg.inicioCampana == null) cg.inicioCampana = momento;
                 cg.finCampana = null;
@@ -183,30 +189,14 @@ public class CampanaServicio {
                 cg.finCampana = momento;
             }
         }
-        if (actualizarEstado) {
-            CampanaEstadoEntidad e = estados.findById(c.id());
-            if (e == null) {
-                e = new CampanaEstadoEntidad();
-                e.campanaId = c.id();
-                e.nombre = c.nombre();
-                e.tipo = c.tipo();
-                e.registros = c.registros();
-                e.ultimaRevision = momento;
-                estados.persist(e);
-            }
-            e.activa = activa;
-            e.desde = momento;
-            e.ultimaRevision = momento;
-        }
+        c.activa = activa;
+        c.desde = momento;
+        c.ultimaRevision = momento;
     }
 
-    private void publicarCambio(Campana c, boolean activa, LocalDateTime momento, String origen) {
-        avisos.publicar(new AvisosCampanas.Aviso("CAMBIO", c.id(), c.nombre(), activa ? "INICIO" : "DETENCION",
-                momento, origen, null, null, null));
-    }
-
-    private LocalDateTime ahora() {
-        return LocalDateTime.now(reloj).truncatedTo(ChronoUnit.SECONDS);
+    private void publicarCambio(OperacionEntidad op, CampanaEntidad c, boolean activa, LocalDateTime momento, String origen) {
+        avisos.publicar(new AvisosCampanas.Aviso("CAMBIO", op.id, op.nombre, c.campanaId, c.nombre, activa ? "INICIO" : "DETENCION",
+                momento, origen, null, null, null, null));
     }
 
     /** Si está activado, cada minuto inicia o detiene las campañas según el horario planeado de sus cargues. */
@@ -216,18 +206,26 @@ public class CampanaServicio {
         LocalDate hoy = LocalDate.now(reloj);
         LocalTime ahora = LocalTime.now(reloj);
         for (CargueEntidad cg : QuarkusTransaction.requiringNew().call(() -> cargues.delDia(hoy))) {
+            if (cg.operacionId == null || cg.registrosCargados <= 0) continue;
             try {
-                if (cg.registrosCargados <= 0) continue;
                 if (cg.inicioCampana == null && cg.horaInicioPlan != null && !ahora.isBefore(cg.horaInicioPlan)
                         && (cg.horaFinPlan == null || ahora.isBefore(cg.horaFinPlan))) {
-                    iniciar(cg.campanaId, "HORARIO");
+                    iniciar(cg.operacionId, cg.campanaId, "HORARIO");
                 } else if (cg.inicioCampana != null && cg.finCampana == null && cg.horaFinPlan != null
                         && !ahora.isBefore(cg.horaFinPlan)) {
-                    detener(cg.campanaId, "HORARIO");
+                    detener(cg.operacionId, cg.campanaId, "HORARIO");
                 }
             } catch (RuntimeException e) {
                 LOG.errorf("No se pudo aplicar el horario de la campaña %s: %s", cg.campanaId, e.getMessage());
             }
         }
+    }
+
+    private static String recortar(String s) {
+        return s == null ? null : s.length() > 1000 ? s.substring(0, 1000) : s;
+    }
+
+    private LocalDateTime ahora() {
+        return LocalDateTime.now(reloj).truncatedTo(ChronoUnit.SECONDS);
     }
 }

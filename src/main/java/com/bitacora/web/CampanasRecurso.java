@@ -2,8 +2,6 @@ package com.bitacora.web;
 
 import com.bitacora.aplicacion.AvisosCampanas;
 import com.bitacora.aplicacion.CampanaServicio;
-import com.bitacora.dominio.modelo.Campana;
-import com.bitacora.infraestructura.persistencia.CampanaEstadoEntidad;
 import com.bitacora.infraestructura.persistencia.EventoCampanaEntidad;
 import io.smallrye.mutiny.Multi;
 import jakarta.ws.rs.*;
@@ -12,10 +10,10 @@ import org.jboss.resteasy.reactive.RestStreamElementType;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/** Estado en vivo de las campañas registradas: escaneo, historial, avisos en tiempo real e iniciar/detener. */
 @Path("/api/campanas")
 @Produces(MediaType.APPLICATION_JSON)
 public class CampanasRecurso {
@@ -28,21 +26,10 @@ public class CampanasRecurso {
         this.avisos = avisos;
     }
 
-    /** Campañas que existen en el servidor de Wolkvox, con su estado (activa/detenida). */
     @GET
-    public List<Campana> listar(@QueryParam("refrescar") boolean refrescar) {
-        return campanas.listar(refrescar);
-    }
-
-    /** Último estado conocido de cada campaña y la última revisión. */
-    @GET
-    @Path("/estado")
-    public Map<String, Object> estado() {
-        Map<String, Object> r = new HashMap<>();
-        List<CampanaEstadoEntidad> e = campanas.estados();
-        r.put("campanas", e);
-        r.put("ultimoEscaneo", campanas.ultimoEscaneo());
-        return r;
+    @Path("/ultimo-escaneo")
+    public CampanaServicio.ResultadoEscaneo ultimoEscaneo() {
+        return campanas.ultimoEscaneo();
     }
 
     /** Fuerza el escaneo de campañas activas/inactivas (normalmente corre solo cada 5 minutos). */
@@ -70,14 +57,14 @@ public class CampanasRecurso {
     }
 
     @POST
-    @Path("/{id}/iniciar")
-    public Map<String, LocalDateTime> iniciar(@PathParam("id") String id) {
-        return Map.of("inicio", campanas.iniciar(id, "APP"));
+    @Path("/{operacion}/{id}/iniciar")
+    public Map<String, LocalDateTime> iniciar(@PathParam("operacion") long operacion, @PathParam("id") String id) {
+        return Map.of("inicio", campanas.iniciar(operacion, id, "APP"));
     }
 
     @POST
-    @Path("/{id}/detener")
-    public Map<String, LocalDateTime> detener(@PathParam("id") String id) {
-        return Map.of("fin", campanas.detener(id, "APP"));
+    @Path("/{operacion}/{id}/detener")
+    public Map<String, LocalDateTime> detener(@PathParam("operacion") long operacion, @PathParam("id") String id) {
+        return Map.of("fin", campanas.detener(operacion, id, "APP"));
     }
 }

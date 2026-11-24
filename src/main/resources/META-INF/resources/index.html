@@ -85,50 +85,89 @@ tr:last-child td{border-bottom:0}
 .banner{padding:10px 24px;background:var(--warn-soft);color:var(--warn);font-size:13px}
 .panel-hora{margin-top:12px}
 .panel-hora h3{margin:0 0 10px;font-size:15px}
+/* Avisos (toasts) */
+#avisos{position:fixed;top:76px;right:14px;z-index:50;display:flex;flex-direction:column;gap:10px;width:min(420px,calc(100vw - 28px))}
+.toast{display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:start;padding:12px 14px;border-radius:10px;background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--accent);box-shadow:0 8px 24px rgba(0,0,0,.15);animation:entra .2s ease-out}
+.toast.error{border-left-color:var(--no)} .toast.ok{border-left-color:var(--ok)} .toast.warn{border-left-color:var(--warn)}
+.toast .ico{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:14px;background:var(--accent-soft);color:var(--accent)}
+.toast.error .ico{background:var(--no-soft);color:var(--no)} .toast.ok .ico{background:var(--ok-soft);color:var(--ok)} .toast.warn .ico{background:var(--warn-soft);color:var(--warn)}
+.toast b{display:block;margin-bottom:2px}
+.toast p{margin:0;color:var(--muted);font-size:13px;word-break:break-word}
+.toast .sug{margin-top:6px;color:var(--fg);font-size:13px}
+.toast .sug::before{content:"Qué hacer: ";font-weight:600}
+.toast button{border:0;background:none;color:var(--muted);font-size:18px;cursor:pointer;line-height:1}
+@keyframes entra{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+/* Error dentro de una tarjeta */
+.caja-error{display:grid;grid-template-columns:22px 1fr;gap:8px;padding:10px 12px;border-radius:8px;background:var(--no-soft);color:var(--no);font-size:13px;margin-top:10px}
+.caja-error b{display:block}
+.caja-ok{padding:8px 12px;border-radius:8px;background:var(--ok-soft);color:var(--ok);font-size:13px;margin-top:10px}
+.campo-error{border-color:var(--no)!important;box-shadow:0 0 0 3px var(--no-soft)}
+.form{display:flex;flex-wrap:wrap;gap:10px;align-items:end}
+.form label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+.prefijo{display:flex;align-items:center}
+.prefijo span{padding:5px 7px;border:1px solid var(--line);border-right:0;border-radius:5px 0 0 5px;background:var(--bg);font-family:var(--mono);color:var(--muted)}
+.prefijo input{border-radius:0 5px 5px 0;width:90px}
+.op{margin-top:12px}
+.op-cab{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.op-cab h3{margin:0;font-size:16px}
+.op-cab .sep{flex:1}
+.mono{font-family:var(--mono);font-size:12px;color:var(--muted)}
+button.btn.peligro{color:var(--no)}
+button.btn.chico{padding:3px 9px;font-size:12px}
+.vacio-grande{padding:36px;text-align:center;color:var(--muted)}
+.vacio-grande b{display:block;color:var(--fg);font-size:16px;margin-bottom:6px}
+.grupo-op{margin-bottom:14px}
+.grupo-op h4{margin:0;padding:10px 12px;font-size:13px;border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center}
 [hidden]{display:none!important}
 </style>
+
 </head>
 <body>
-<div class="banner" id="bannerSim" hidden>Modo simulado: no se envía nada a Wolkvox. Para usar el servidor real, llena <b>servidor</b> y <b>token</b> en <code>config\application.properties</code> y reinicia el programa.</div>
+<div id="avisos" aria-live="polite"></div>
 <header>
   <h1>Bitácora Digital de Cargues</h1>
   <nav role="tablist">
     <button role="tab" data-v="cargar" aria-selected="true">Cargar listas</button>
     <button role="tab" data-v="bitacora" aria-selected="false">Bitácora</button>
-    <button role="tab" data-v="campanas" aria-selected="false">Campañas en vivo</button>
+    <button role="tab" data-v="vivo" aria-selected="false">Campañas en vivo</button>
+    <button role="tab" data-v="config" aria-selected="false">Campañas y servidores</button>
     <button role="tab" data-v="agenda" aria-selected="false">Agenda del día</button>
     <button role="tab" data-v="metricas" aria-selected="false">Métricas por hora</button>
   </nav>
-  <span><span class="vivo" id="vivo" title="Conexión en tiempo real"><i></i><span>desconectado</span></span> &nbsp; <span class="modo" id="modo"></span></span>
+  <span class="vivo" id="vivo" title="Conexión en tiempo real"><i></i><span>desconectado</span></span>
 </header>
 
 <main>
-  <div id="msg" hidden></div>
+  <div class="tarjeta" id="sinOps" hidden>
+    <div class="vacio-grande"><b>Aún no hay campañas principales</b>Registre la primera con su servidor de Wolkvox y su token para poder cargar listas.
+      <div style="margin-top:14px"><button class="btn primario" id="irConfig">Agregar campaña principal</button></div></div>
+  </div>
 
   <!-- CARGAR -->
   <section id="v-cargar">
     <div class="tarjeta">
-      <p class="paso">1 · Campaña destino (leída del servidor Wolkvox)</p>
-      <div class="destino">
-        <input type="search" id="buscaCamp" placeholder="Buscar por ID o nombre" size="24" aria-label="Buscar campaña">
-        <select id="campDestino" aria-label="Campaña destino"><option value="">Cargando campañas…</option></select>
-        <button class="btn" id="refrescarCamp">Actualizar desde Wolkvox</button>
-        <span id="infoCamp" class="modo"></span>
+      <p class="paso">1 · Campaña principal y campaña destino</p>
+      <div class="form">
+        <label>Campaña principal (servidor)<select id="opCargue" style="min-width:240px"></select></label>
+        <label>Número de campaña en Wolkvox<input id="campCargue" list="campsCargue" placeholder="Escriba o elija el número" size="24" inputmode="numeric"></label>
+        <datalist id="campsCargue"></datalist>
+        <button class="btn" id="usarCamp">Usar esta campaña</button>
       </div>
+      <div id="infoCampCargue"></div>
     </div>
     <div class="tarjeta" style="margin-top:12px">
       <p class="paso">2 · Archivos a cargar</p>
       <div class="barra">
         <button class="btn" id="escanear">Escanear carpeta</button>
-        <span class="modo" id="carpeta"></span>
+        <span class="mono" id="carpeta"></span>
         <span class="sep"></span>
         <label>Fecha <input type="date" id="fechaCargue"></label>
         <button class="btn primario" id="cargarSel" disabled>Cargar seleccionados</button>
       </div>
       <div class="caja" style="margin-top:12px">
         <table>
-          <thead><tr><th></th><th>Archivo</th><th>Filas</th><th>Revisión</th><th>Campaña</th><th>Estrategia</th><th>Jefe</th><th>Nombre estrategia</th><th>Inicio</th><th>Fin</th></tr></thead>
-          <tbody id="archivos"><tr><td colspan="10" class="vacio">Elige la campaña y pulsa "Escanear carpeta" para ver los CSV pendientes.</td></tr></tbody>
+          <thead><tr><th></th><th>Archivo</th><th>Filas</th><th>Revisión</th><th>Campaña destino</th><th>Estrategia</th><th>Jefe</th><th>Nombre estrategia</th><th>Inicio</th><th>Fin</th></tr></thead>
+          <tbody id="archivos"><tr><td colspan="10" class="vacio">Elija la campaña y pulse "Escanear carpeta" para ver los CSV pendientes.</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -149,30 +188,45 @@ tr:last-child td{border-bottom:0}
     </div>
     <div class="caja" style="margin-top:12px">
       <table>
-        <thead><tr><th>Hora inicio</th><th>Hora final</th><th>ID</th><th>Nombre de lista</th><th>Campaña</th><th>Estrategia</th><th>Remarc.</th><th>Jefe</th><th>Cargados</th><th>No válidos</th><th>Gestionado</th><th>Marcación</th><th>% Gestión</th><th>Informe</th><th>Nombre estrategia</th><th>Estado</th><th>Campaña</th></tr></thead>
+        <thead><tr><th>Hora inicio</th><th>Hora final</th><th>Campaña principal</th><th>ID</th><th>Nombre de lista</th><th>Campaña</th><th>Estrategia</th><th>Remarc.</th><th>Jefe</th><th>Cargados</th><th>No válidos</th><th>Gestionado</th><th>Marcación</th><th>% Gestión</th><th>Informe</th><th>Nombre estrategia</th><th>Estado</th><th>Campaña</th></tr></thead>
         <tbody id="bitacora"></tbody>
       </table>
     </div>
   </section>
 
   <!-- CAMPAÑAS EN VIVO -->
-  <section id="v-campanas" hidden>
+  <section id="v-vivo" hidden>
     <div class="barra">
-      <span class="modo" id="infoEscaneo"></span>
+      <span class="mono" id="infoEscaneo"></span>
       <span class="sep"></span>
       <label>Ver <select id="filtroCamp"><option value="">Todas</option><option value="1">Activas</option><option value="0">Detenidas</option></select></label>
       <button class="btn" id="escanearCamp">Escanear ahora</button>
     </div>
     <div class="kpis" id="kpisCamp" style="margin-top:12px"></div>
     <div class="dos" style="margin-top:12px">
-      <div class="caja">
-        <table><thead><tr><th>Estado</th><th>ID</th><th>Campaña</th><th>Tipo</th><th>Registros</th><th>Desde</th></tr></thead><tbody id="tablaCamp"></tbody></table>
-      </div>
-      <div class="caja">
+      <div id="estadoOps"></div>
+      <div class="caja" style="align-self:start">
         <div class="barra" style="padding:10px 12px;border-bottom:1px solid var(--line)"><b>Histórico de activación</b><span class="sep"></span><input type="date" id="fechaHist" aria-label="Fecha del histórico"></div>
         <ul class="feed" id="feed"></ul>
       </div>
     </div>
+  </section>
+
+  <!-- CONFIGURACIÓN -->
+  <section id="v-config" hidden>
+    <div class="tarjeta">
+      <p class="paso">Nueva campaña principal</p>
+      <div class="form" id="formNueva">
+        <label>Nombre<input id="nNombre" placeholder="Ej. REINTEGRA" size="22"></label>
+        <label>Servidor<span class="prefijo"><span>wv</span><input id="nServidor" placeholder="0003" inputmode="numeric"></span></label>
+        <label>Token de Wolkvox Manager<input id="nToken" type="password" placeholder="Pegue el token" size="38" autocomplete="off"></label>
+        <button class="btn" id="verToken" type="button" title="Mostrar u ocultar el token">Mostrar</button>
+        <button class="btn primario" id="crearOp">Validar y guardar</button>
+      </div>
+      <p class="mono" style="margin:10px 0 0">El token se crea en Wolkvox Manager → Configuración → Integraciones → Tokens. Antes de guardar se prueba contra el servidor.</p>
+      <div id="resNueva"></div>
+    </div>
+    <div id="listaOps"></div>
   </section>
 
   <!-- AGENDA -->
@@ -195,7 +249,7 @@ tr:last-child td{border-bottom:0}
     <div class="kpis" id="kpis" style="margin-top:12px"></div>
     <div class="caja grafico" style="margin-top:12px;padding:12px" id="grafico"></div>
     <div class="caja" style="margin-top:12px">
-      <table><thead><tr><th>Hora</th><th>Campaña</th><th>Agentes conectados</th><th>Registros barridos</th><th>Gestionados</th></tr></thead><tbody id="metricas"></tbody></table>
+      <table><thead><tr><th>Hora</th><th>Campaña principal</th><th>Campaña</th><th>Agentes conectados</th><th>Registros barridos</th><th>Gestionados</th></tr></thead><tbody id="metricas"></tbody></table>
     </div>
   </section>
 </main>
@@ -204,121 +258,132 @@ tr:last-child td{border-bottom:0}
 const $ = s => document.querySelector(s);
 const hoy = new Date(Date.now() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
 ['#fechaCargue','#fechaBit','#fechaAg','#fechaMet','#fechaHist'].forEach(id => $(id).value = hoy);
-let campanas = [], catalogos = {}, archivos = [];
+let ops = [], catalogos = {}, archivos = [];
+const H0 = 6, H1 = 22; // franja visible 6:00 a 22:00
 
+// ── Utilidades y errores visibles ──
+class ErrorApi extends Error { constructor(d, estado) { super(d.error || ('Error ' + estado)); this.titulo = d.titulo; this.sugerencia = d.sugerencia; this.estado = estado; } }
 async function api(url, opts = {}) {
-  const r = await fetch(url, {headers: {'Content-Type': 'application/json'}, ...opts});
+  let r;
+  try { r = await fetch(url, {headers: {'Content-Type': 'application/json'}, ...opts}); }
+  catch (e) { throw new ErrorApi({titulo: 'Sin conexión con el programa', error: 'El navegador no pudo comunicarse con la Bitácora.', sugerencia: 'Revise que la ventana negra del programa siga abierta.'}, 0); }
   const t = await r.text();
-  const d = t ? JSON.parse(t) : null;
-  if (!r.ok) throw new Error(d && d.error ? d.error : ('Error ' + r.status));
+  let d = null; try { d = t ? JSON.parse(t) : null; } catch { d = {error: t.slice(0, 300)}; }
+  if (!r.ok) throw new ErrorApi(d || {}, r.status);
   return d;
-}
-function mensaje(txt, tipo = 'aviso') {
-  const m = $('#msg'); m.className = tipo; m.textContent = txt; m.hidden = !txt;
-  if (txt) setTimeout(() => m.hidden = true, 8000);
 }
 const esc = s => (s ?? '').toString().replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const hhmm = dt => dt ? dt.slice(11,16) : '';
 const t5 = t => t ? t.slice(0,5) : '';
+const fechaHora = dt => !dt ? '' : dt.slice(0,10) === hoy ? dt.slice(11,16) : dt.slice(0,16).replace('T', ' ');
+/** Aviso visible arriba a la derecha. Los errores se quedan hasta cerrarlos. */
+function aviso({tipo = 'info', titulo, detalle, sugerencia, ms}) {
+  const ico = {error: '!', ok: '✓', warn: '!', info: 'i'}[tipo];
+  const el = document.createElement('div');
+  el.className = 'toast ' + tipo; el.setAttribute('role', tipo === 'error' ? 'alert' : 'status');
+  el.innerHTML = `<span class="ico">${ico}</span><div><b>${esc(titulo)}</b>${detalle ? `<p>${esc(detalle)}</p>` : ''}${sugerencia ? `<p class="sug">${esc(sugerencia)}</p>` : ''}</div><button aria-label="Cerrar">×</button>`;
+  el.querySelector('button').onclick = () => el.remove();
+  $('#avisos').prepend(el);
+  while ($('#avisos').children.length > 5) $('#avisos').lastChild.remove();
+  const dura = ms ?? (tipo === 'error' ? 0 : 6000);
+  if (dura) setTimeout(() => el.remove(), dura);
+}
+const fallo = (e, titulo) => aviso({tipo: 'error', titulo: e.titulo || titulo || 'Algo salió mal', detalle: e.message, sugerencia: e.sugerencia});
+const ok = (titulo, detalle) => aviso({tipo: 'ok', titulo, detalle});
+const cajaError = (e) => `<div class="caja-error"><span>⚠</span><div><b>${esc(e.titulo || 'Error')}</b>${esc(e.message || e.error || '')}${e.sugerencia ? `<br><b style="display:inline">Qué hacer:</b> ${esc(e.sugerencia)}` : ''}</div></div>`;
+const tipoTxt = t => t === 'PREVIEW' ? 'Preview' : 'Predictiva';
+const estadoPill = a => a == null ? '<span class="pill p-info">sin dato</span>' : a ? '<span class="pill p-ok">activa</span>' : '<span class="pill p-no">detenida</span>';
+const origenTxt = o => ({APP: 'desde la app', HORARIO: 'por horario', ESCANEO: 'detectado en Wolkvox'})[o] || o;
+const opDe = id => ops.find(o => o.id === id);
+const nomCamp = (opId, id) => ((opDe(opId)?.campanas || []).find(c => c.campanaId === id) || {}).nombre || '';
 
 // Pestañas
-document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
-  document.querySelectorAll('nav button').forEach(x => x.setAttribute('aria-selected', x === b));
-  document.querySelectorAll('main > section').forEach(s => s.hidden = s.id !== 'v-' + b.dataset.v);
-  ({bitacora: cargarBitacora, campanas: cargarCampanas, agenda: cargarAgenda, metricas: cargarMetricas})[b.dataset.v]?.();
-});
+const vistas = {bitacora: () => cargarBitacora(), vivo: () => cargarVivo(), config: () => pintarConfig(), agenda: () => cargarAgenda(), metricas: () => cargarMetricas()};
+function irA(v) {
+  document.querySelectorAll('nav button').forEach(x => x.setAttribute('aria-selected', x.dataset.v === v));
+  document.querySelectorAll('main > section').forEach(s => s.hidden = s.id !== 'v-' + v);
+  $('#sinOps').hidden = ops.length > 0 || v === 'config';
+  vistas[v]?.();
+}
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => irA(b.dataset.v));
+$('#irConfig').onclick = () => irA('config');
 
 async function inicio() {
-  try {
-    catalogos = await api('/api/catalogos');
-    $('#modo').textContent = 'Wolkvox: ' + (catalogos.modoWolkvox === 'http' ? 'wv' + catalogos.servidorWolkvox : 'simulado') + (catalogos.autoActivar ? ' · activación por horario' : '');
-    $('#bannerSim').hidden = catalogos.modoWolkvox === 'http';
-    $('#carpeta').textContent = catalogos.carpetaEntrada;
-  } catch (e) { mensaje(e.message, 'error'); }
-  await traerCampanas(false);
+  try { catalogos = await api('/api/catalogos'); $('#carpeta').textContent = catalogos.carpetaEntrada; } catch (e) { fallo(e); }
+  await traerOps();
+  $('#sinOps').hidden = ops.length > 0;
   conectarVivo();
 }
+async function traerOps() {
+  try { ops = await api('/api/operaciones'); } catch (e) { fallo(e, 'No se pudieron leer las campañas principales'); }
+  pintarOpsCargue();
+  const sel = $('#campMet').value;
+  $('#campMet').innerHTML = '<option value="">Todas</option>' + ops.flatMap(o => o.campanas.map(c => `<option value="${o.id}|${esc(c.campanaId)}">${esc(o.nombre)} · ${esc(c.campanaId)} · ${esc(c.nombre)}</option>`)).join('');
+  $('#campMet').value = sel;
+}
 
-// ── Campañas del servidor ──
-const tipoTxt = t => t === 'PREVIEW' ? 'Preview' : 'Predictiva';
-const estadoPill = a => a == null ? '<span class="pill p-info">¿?</span>' : a ? '<span class="pill p-ok">activa</span>' : '<span class="pill p-no">detenida</span>';
-async function traerCampanas(refrescar) {
+// ── 1. Cargar ──
+function pintarOpsCargue() {
+  const actual = $('#opCargue').value;
+  $('#opCargue').innerHTML = ops.length ? ops.map(o => `<option value="${o.id}">${esc(o.nombre)} · wv${esc(o.servidor)}${o.tokenValido === false ? ' · ⚠ token con problemas' : ''}</option>`).join('')
+    : '<option value="">No hay campañas principales</option>';
+  if (ops.some(o => String(o.id) === actual)) $('#opCargue').value = actual;
+  pintarCampsCargue();
+}
+function pintarCampsCargue() {
+  const o = opDe(+$('#opCargue').value);
+  $('#campsCargue').innerHTML = (o?.campanas || []).map(c => `<option value="${esc(c.campanaId)}">${esc(c.nombre)} · ${tipoTxt(c.tipo)}</option>`).join('');
+  infoCampCargue();
+}
+function infoCampCargue() {
+  const o = opDe(+$('#opCargue').value), id = $('#campCargue').value.trim();
+  const c = (o?.campanas || []).find(x => x.campanaId === id);
+  $('#campCargue').classList.remove('campo-error');
+  $('#infoCampCargue').innerHTML = !o ? '' : o.tokenValido === false ? cajaError({titulo: 'El token de ' + o.nombre + ' tiene problemas', message: o.ultimoError || '', sugerencia: 'Actualícelo en "Campañas y servidores".'})
+    : c ? `<div class="caja-ok">${esc(c.campanaId)} · <b>${esc(c.nombre)}</b> · ${tipoTxt(c.tipo)} · ${c.activa ? 'activa' : 'detenida'}${c.registros != null ? ' · ' + c.registros.toLocaleString('es-CO') + ' registros' : ''}</div>`
+    : id ? '<p class="mono" style="margin:10px 0 0">Número nuevo: pulse "Usar esta campaña" para comprobarlo en Wolkvox y guardarlo.</p>' : '';
+  document.querySelectorAll('#archivos .camp').forEach(s => { if (!s.dataset.tocado) { s.innerHTML = opcionesCamp(); s.value = c ? c.campanaId : ''; } });
+}
+const opcionesCamp = () => '<option value="">Elegir…</option>' + (opDe(+$('#opCargue').value)?.campanas || []).map(c => `<option value="${esc(c.campanaId)}">${esc(c.campanaId)} · ${esc(c.nombre)}</option>`).join('');
+$('#opCargue').onchange = () => { $('#campCargue').value = ''; document.querySelectorAll('#archivos .camp').forEach(s => delete s.dataset.tocado); pintarCampsCargue(); };
+$('#campCargue').oninput = infoCampCargue;
+$('#campCargue').onkeydown = e => { if (e.key === 'Enter') $('#usarCamp').click(); };
+$('#usarCamp').onclick = async () => {
+  const o = opDe(+$('#opCargue').value), id = $('#campCargue').value.trim();
+  if (!o) return aviso({tipo: 'warn', titulo: 'Primero registre una campaña principal', sugerencia: 'Vaya a "Campañas y servidores".'});
+  if (!id) { $('#campCargue').classList.add('campo-error'); return aviso({tipo: 'warn', titulo: 'Escriba el número de campaña'}); }
+  $('#usarCamp').disabled = true; $('#usarCamp').textContent = 'Comprobando en Wolkvox…';
   try {
-    campanas = await api('/api/campanas' + (refrescar ? '?refrescar=true' : ''));
-    pintarDestino();
-    const sel = $('#campMet').value;
-    $('#campMet').innerHTML = '<option value="">Todas</option>' + campanas.map(c => `<option value="${esc(c.id)}">${esc(c.id)} · ${esc(c.nombre)}</option>`).join('');
-    $('#campMet').value = sel;
-    if (refrescar) mensaje(campanas.length + ' campañas leídas de Wolkvox.');
-  } catch (e) { $('#campDestino').innerHTML = '<option value="">No se pudieron leer las campañas</option>'; mensaje('Wolkvox: ' + e.message, 'error'); }
-}
-function pintarDestino() {
-  const q = $('#buscaCamp').value.trim().toLowerCase(); const actual = $('#campDestino').value;
-  const lista = campanas.filter(c => !q || c.id.toLowerCase().includes(q) || c.nombre.toLowerCase().includes(q));
-  $('#campDestino').innerHTML = '<option value="">Elegir campaña… (' + lista.length + ')</option>' + lista.map(c =>
-    `<option value="${esc(c.id)}">${esc(c.id)} · ${esc(c.nombre)} · ${tipoTxt(c.tipo)}${c.activa == null ? '' : c.activa ? ' · activa' : ' · detenida'}</option>`).join('');
-  if (lista.some(c => c.id === actual)) $('#campDestino').value = actual;
-  infoDestino();
-}
-function infoDestino() {
-  const c = campanas.find(x => x.id === $('#campDestino').value);
-  $('#infoCamp').innerHTML = c ? `${tipoTxt(c.tipo)} · ${estadoPill(c.activa)} ${c.registros != null ? '· ' + c.registros.toLocaleString('es-CO') + ' registros' : ''}` : '';
-  document.querySelectorAll('#archivos .camp').forEach(s => { if (!s.dataset.tocado) s.value = $('#campDestino').value; });
-}
-$('#buscaCamp').oninput = pintarDestino;
-$('#campDestino').onchange = infoDestino;
-$('#refrescarCamp').onclick = () => traerCampanas(true);
+    const c = await api(`/api/operaciones/${o.id}/campanas`, {method: 'POST', body: JSON.stringify({campanaId: id})});
+    await traerOps(); $('#campCargue').value = c.campanaId; infoCampCargue();
+    ok('Campaña lista', `${c.campanaId} · ${c.nombre} quedó guardada en ${o.nombre} para futuros cargues.`);
+  } catch (e) { $('#campCargue').classList.add('campo-error'); $('#infoCampCargue').innerHTML = cajaError(e); }
+  $('#usarCamp').disabled = false; $('#usarCamp').textContent = 'Usar esta campaña';
+};
 
-// ── Tiempo real ──
-let fuente;
-function conectarVivo() {
-  if (fuente) fuente.close();
-  fuente = new EventSource('/api/campanas/eventos');
-  const marca = (on) => { $('#vivo').classList.toggle('on', on); $('#vivo span').textContent = on ? 'en vivo' : 'reconectando…'; };
-  fuente.onopen = () => marca(true);
-  fuente.onerror = () => marca(false);
-  fuente.onmessage = ev => {
-    marca(true);
-    const a = JSON.parse(ev.data);
-    if (a.tipo === 'CAMBIO') {
-      const c = campanas.find(x => x.id === a.campanaId); if (c) c.activa = a.evento === 'INICIO';
-      pintarDestino();
-      if ($('#fechaHist').value === a.momento.slice(0, 10)) agregarAlFeed(a, true);
-      mensaje(`${a.campanaId} · ${a.campanaNombre || ''} ${a.evento === 'INICIO' ? 'se activó' : 'se detuvo'} a las ${a.momento.slice(11, 16)} (${origenTxt(a.origen)})`);
-      if (!$('#v-bitacora').hidden) cargarBitacora();
-      if (!$('#v-campanas').hidden) cargarEstado();
-    } else if (a.tipo === 'ESCANEO') {
-      if (a.error) mensaje('El escaneo de campañas falló: ' + a.error, 'error');
-      if (!$('#v-campanas').hidden) cargarEstado();
-    }
-  };
-}
-const origenTxt = o => ({APP: 'desde la app', HORARIO: 'por horario', ESCANEO: 'detectado en Wolkvox'})[o] || o;
-
-// ── Cargar ──
 $('#escanear').onclick = async () => {
   try {
     archivos = await api('/api/archivos');
-    const opCamp = '<option value="">Elegir…</option>' + campanas.map(c => `<option value="${esc(c.id)}">${esc(c.id)} · ${esc(c.nombre)} (${tipoTxt(c.tipo)})</option>`).join('');
-    const opJefe = '<option value=""></option>' + catalogos.jefes.map(j => `<option>${esc(j)}</option>`).join('');
+    const opJefe = '<option value=""></option>' + (catalogos.jefes || []).map(j => `<option>${esc(j)}</option>`).join('');
     $('#archivos').innerHTML = archivos.length ? archivos.map((a, i) => `
       <tr data-i="${i}">
         <td><input type="checkbox" class="sel" aria-label="Seleccionar ${esc(a.nombre)}"></td>
         <td title="${esc(a.huella)}">${esc(a.nombre)} ${a.yaCargado ? '<span class="pill p-warn">ya cargado</span>' : ''}</td>
         <td class="num">${a.filas.toLocaleString('es-CO')}</td>
-        <td class="rev"><button class="btn revisar">Revisar</button></td>
-        <td><select class="camp">${opCamp}</select></td>
+        <td class="rev"><button class="btn chico revisar">Revisar</button></td>
+        <td><select class="camp"></select></td>
         <td><select class="est"><option>NUEVA</option><option value="REMARCACION">REMARCACIÓN</option></select></td>
         <td><select class="jefe">${opJefe}</select></td>
         <td><input class="nest" size="22" placeholder="Ej. Incumplidos hasta 2 días"></td>
         <td><input type="time" class="hi"></td>
         <td><input type="time" class="hf"></td>
-      </tr>`).join('') : '<tr><td colspan="10" class="vacio">No hay CSV en la carpeta.</td></tr>';
-    document.querySelectorAll('#archivos .camp').forEach(s => { s.value = $('#campDestino').value; s.onchange = () => s.dataset.tocado = '1'; });
+      </tr>`).join('') : `<tr><td colspan="10" class="vacio">No hay CSV en ${esc(catalogos.carpetaEntrada)}.</td></tr>`;
+    document.querySelectorAll('#archivos .camp').forEach(s => s.onchange = () => s.dataset.tocado = '1');
+    infoCampCargue();
     document.querySelectorAll('.sel').forEach(c => c.onchange = actualizarBoton);
     document.querySelectorAll('.revisar').forEach(b => b.onclick = revisar);
     actualizarBoton();
-  } catch (e) { mensaje(e.message, 'error'); }
+  } catch (e) { fallo(e, 'No se pudo leer la carpeta'); }
 };
 function actualizarBoton() { $('#cargarSel').disabled = !document.querySelector('.sel:checked'); }
 async function revisar(ev) {
@@ -328,33 +393,63 @@ async function revisar(ev) {
     tr.querySelector('.rev').innerHTML = v.erroresEstructura.length
       ? `<span class="pill p-no" title="${esc(v.erroresEstructura.join('\n'))}">estructura inválida</span>`
       : `<span class="pill p-ok">${v.validos} válidos</span> ${v.invalidos ? `<span class="pill p-warn" title="${esc(v.ejemplosInvalidos.map(x => 'Línea ' + x.linea + ': ' + x.motivo).join('\n'))}">${v.invalidos} no válidos</span>` : ''}`;
-  } catch (e) { mensaje(e.message, 'error'); }
+    if (v.erroresEstructura.length) aviso({tipo: 'error', titulo: a.nombre + ' no tiene la plantilla de Wolkvox', detalle: v.erroresEstructura.join(' · '), sugerencia: 'Corrija los encabezados del CSV.'});
+  } catch (e) { fallo(e); }
 }
 $('#cargarSel').onclick = async () => {
+  const o = opDe(+$('#opCargue').value);
+  if (!o) return aviso({tipo: 'warn', titulo: 'Elija la campaña principal'});
   const filas = [...document.querySelectorAll('.sel:checked')].map(c => c.closest('tr'));
   const sinCamp = filas.filter(tr => !tr.querySelector('.camp').value);
-  if (sinCamp.length) return mensaje('Elige la campaña destino (paso 1) o la campaña de cada archivo seleccionado.');
+  sinCamp.forEach(tr => tr.querySelector('.camp').classList.add('campo-error'));
+  if (sinCamp.length) return aviso({tipo: 'warn', titulo: 'Falta la campaña destino', detalle: sinCamp.length + ' archivo(s) seleccionados no tienen campaña.', sugerencia: 'Elija la campaña en el paso 1 o en la columna "Campaña destino".'});
   const cargues = filas.map(tr => ({
-    archivo: archivos[tr.dataset.i].nombre, campanaId: tr.querySelector('.camp').value,
+    operacionId: o.id, archivo: archivos[tr.dataset.i].nombre, campanaId: tr.querySelector('.camp').value,
     estrategia: tr.querySelector('.est').value, jefe: tr.querySelector('.jefe').value || null,
     nombreEstrategia: tr.querySelector('.nest').value || null,
     horaInicioPlan: tr.querySelector('.hi').value || null, horaFinPlan: tr.querySelector('.hf').value || null,
     fecha: $('#fechaCargue').value }));
-  $('#cargarSel').disabled = true; $('#cargarSel').textContent = 'Cargando…';
+  $('#cargarSel').disabled = true; $('#cargarSel').textContent = 'Cargando a Wolkvox…';
   try {
     const r = await api('/api/cargues', {method: 'POST', body: JSON.stringify({cargues})});
-    const fallidos = r.filter(x => x.estado === 'FALLIDO');
-    mensaje(fallidos.length ? `${fallidos.length} cargue(s) fallaron: ${fallidos.map(f => f.error).join(' · ')}`
-      : `${r.length} lista(s) cargadas: ${r.reduce((s, x) => s + x.registrosCargados, 0).toLocaleString('es-CO')} registros.`, fallidos.length ? 'error' : 'aviso');
+    r.filter(x => x.estado === 'FALLIDO').forEach(f => aviso({tipo: 'error', titulo: 'Falló el cargue de ' + f.nombreLista, detalle: f.error}));
+    const bien = r.filter(x => x.estado !== 'FALLIDO');
+    if (bien.length) ok(`${bien.length} lista(s) cargadas a ${o.nombre}`, `${bien.reduce((s, x) => s + x.registrosCargados, 0).toLocaleString('es-CO')} registros enviados a Wolkvox.` + (bien.some(x => x.registrosNoValidos) ? ' Los no válidos quedaron en la carpeta de rechazados.' : ''));
     $('#escanear').click();
-  } catch (e) { mensaje(e.message, 'error'); }
+  } catch (e) { fallo(e, 'No se pudo cargar'); }
   $('#cargarSel').textContent = 'Cargar seleccionados'; actualizarBoton();
 };
+
+// ── Tiempo real ──
+let fuente;
+function conectarVivo() {
+  if (fuente) fuente.close();
+  fuente = new EventSource('/api/campanas/eventos');
+  const marca = on => { $('#vivo').classList.toggle('on', on); $('#vivo span').textContent = on ? 'en vivo' : 'reconectando…'; };
+  fuente.onopen = () => marca(true);
+  fuente.onerror = () => marca(false);
+  fuente.onmessage = async ev => {
+    marca(true);
+    const a = JSON.parse(ev.data);
+    if (a.tipo === 'CAMBIO') {
+      await traerOps();
+      if ($('#fechaHist').value === a.momento.slice(0, 10)) agregarAlFeed({...a, tipo: a.evento}, true);
+      aviso({tipo: a.evento === 'INICIO' ? 'ok' : 'warn', titulo: `${a.campanaNombre || a.campanaId} ${a.evento === 'INICIO' ? 'se activó' : 'se detuvo'}`,
+        detalle: `${a.operacionNombre} · campaña ${a.campanaId} · ${a.momento.slice(11, 16)} (${origenTxt(a.origen)})`});
+      if (!$('#v-bitacora').hidden) cargarBitacora();
+      if (!$('#v-vivo').hidden) pintarVivo();
+    } else if (a.tipo === 'ERROR') {
+      aviso({tipo: 'error', titulo: 'No se pudo revisar ' + a.operacionNombre, detalle: a.error, sugerencia: a.sugerencia});
+      await traerOps(); if (!$('#v-vivo').hidden) pintarVivo(); if (!$('#v-config').hidden) pintarConfig();
+    } else if (a.tipo === 'ESCANEO') {
+      ultimo = a; await traerOps(); if (!$('#v-vivo').hidden) pintarVivo();
+    }
+  };
+}
 
 // ── Bitácora ──
 $('#fechaBit').onchange = () => { horaSel = null; cargarBitacora(); };
 let horaSel = null;
-const nomCamp = id => (campanas.find(c => c.id === id) || {}).nombre || '';
 function enHora(c, h) {
   const ini = h * 60, fin = ini + 60, min = t => +t.slice(0, 2) * 60 + +t.slice(3, 5);
   if (c.inicioCampana) {
@@ -392,12 +487,12 @@ async function pintarPanelHora() {
       ].map(([t, x]) => `<div class="kpi"><b>${x}</b><span>${t}</span></div>`).join('')}</div>
       <div class="dos" style="margin-top:12px">
         <div class="caja"><table><thead><tr><th>Campaña</th><th>Agentes</th><th>Barridos</th><th>Gestionados</th></tr></thead><tbody>${
-          v.cortes.length ? v.cortes.map(m => `<tr><td>${esc(m.campanaId)} · ${esc(nomCamp(m.campanaId))}</td><td class="num">${m.agentesConectados}</td><td class="num">${m.registrosBarridos}</td><td class="num">${m.gestionados}</td></tr>`).join('')
+          v.cortes.length ? v.cortes.map(m => `<tr><td>${esc(opDe(m.operacionId)?.nombre || '')} · ${esc(m.campanaId)} ${esc(nomCamp(m.operacionId, m.campanaId))}</td><td class="num">${m.agentesConectados}</td><td class="num">${m.registrosBarridos}</td><td class="num">${m.gestionados}</td></tr>`).join('')
           : '<tr><td colspan="4" class="vacio">Sin corte de esta hora todavía. Se guarda al minuto 2 de la hora siguiente (o con "Recolectar ahora" en Métricas).</td></tr>'}</tbody></table></div>
         <div class="caja"><ul class="feed">${v.eventos.length ? v.eventos.map(e => htmlEvento(e)).join('') : '<li><span></span><span class="vacio" style="padding:8px">Sin activaciones ni detenciones en esta hora.</span><span></span></li>'}</ul></div>
       </div>`;
     p.hidden = false;
-  } catch (e) { mensaje(e.message, 'error'); }
+  } catch (e) { fallo(e); }
 }
 async function cargarBitacora() {
   try {
@@ -409,44 +504,46 @@ async function cargarBitacora() {
       <tr data-id="${c.id}">
         <td>${hhmm(c.inicioCampana) || '<span style="color:var(--muted)">' + t5(c.horaInicioPlan) + '</span>'}</td>
         <td>${hhmm(c.finCampana) || '<span style="color:var(--muted)">' + t5(c.horaFinPlan) + '</span>'}</td>
-        <td>${esc(c.campanaId)}</td><td>${esc(c.nombreLista)}</td><td>${esc(c.campanaNombre)}</td>
+        <td>${esc(c.operacionNombre)}</td><td>${esc(c.campanaId)}</td><td>${esc(c.nombreLista)}</td><td>${esc(c.campanaNombre)}</td>
         <td>${c.estrategia === 'REMARCACION' ? 'REMARCACIÓN' : 'NUEVA'}</td><td class="num">${c.remarcacion}</td>
         <td>${esc(c.jefe)}</td>
         <td class="num">${c.registrosCargados.toLocaleString('es-CO')}</td>
         <td class="num">${c.registrosNoValidos ? `<span class="pill p-warn">${c.registrosNoValidos}</span>` : 0}</td>
         <td class="num">${c.totalGestionado ?? ''}</td><td>${esc(c.tipoMarcacion)}</td>
         <td class="num">${c.porcentajeGestion ?? 0}%</td>
-        <td><button class="btn inf">${c.descargaInforme === 'OK' ? '<span class="pill p-ok">OK</span>' : '<span class="pill p-warn">PDT</span>'}</button></td>
+        <td><button class="btn chico inf">${c.descargaInforme === 'OK' ? '<span class="pill p-ok">OK</span>' : '<span class="pill p-warn">PDT</span>'}</button></td>
         <td>${esc(c.nombreEstrategia)}</td>
         <td>${estado(c)}</td>
-        <td>${c.registrosCargados ? `<button class="btn act" data-c="${esc(c.campanaId)}" data-a="${c.inicioCampana && !c.finCampana ? 'detener' : 'iniciar'}">${c.inicioCampana && !c.finCampana ? 'Detener' : 'Iniciar'}</button>` : ''}</td>
-      </tr>`).join('') : (horaSel == null ? '<tr><td colspan="17" class="vacio">No hay cargues en esta fecha.</td></tr>' : '<tr><td colspan="17" class="vacio">Ninguna lista estuvo activa en esta hora.</td></tr>');
+        <td>${c.registrosCargados && c.operacionId ? `<button class="btn chico act" data-o="${c.operacionId}" data-c="${esc(c.campanaId)}" data-a="${c.inicioCampana && !c.finCampana ? 'detener' : 'iniciar'}">${c.inicioCampana && !c.finCampana ? 'Detener' : 'Iniciar'}</button>` : ''}</td>
+      </tr>`).join('') : (horaSel == null ? '<tr><td colspan="18" class="vacio">No hay cargues en esta fecha.</td></tr>' : '<tr><td colspan="18" class="vacio">Ninguna lista estuvo activa en esta hora.</td></tr>');
     document.querySelectorAll('.inf').forEach(b => b.onclick = async () => {
-      const tr = b.closest('tr'); const ok = b.textContent.trim() === 'OK';
-      await api('/api/cargues/' + tr.dataset.id, {method: 'PATCH', body: JSON.stringify({descargaInforme: ok ? 'PDT' : 'OK'})});
-      cargarBitacora();
+      const tr = b.closest('tr'); const esOk = b.textContent.trim() === 'OK';
+      try { await api('/api/cargues/' + tr.dataset.id, {method: 'PATCH', body: JSON.stringify({descargaInforme: esOk ? 'PDT' : 'OK'})}); cargarBitacora(); } catch (e) { fallo(e); }
     });
     document.querySelectorAll('.act').forEach(b => b.onclick = async () => {
-      try { await api(`/api/campanas/${b.dataset.c}/${b.dataset.a}`, {method: 'POST'}); cargarBitacora(); }
-      catch (e) { mensaje(e.message, 'error'); }
+      b.disabled = true;
+      try { await api(`/api/campanas/${b.dataset.o}/${encodeURIComponent(b.dataset.c)}/${b.dataset.a}`, {method: 'POST'}); cargarBitacora(); }
+      catch (e) { fallo(e, 'No se pudo ' + b.dataset.a + ' la campaña'); b.disabled = false; }
     });
-  } catch (e) { mensaje(e.message, 'error'); }
+  } catch (e) { fallo(e); }
 }
 function estado(c) {
   const m = {CARGADO: 'p-ok', CARGADO_CON_RECHAZOS: 'p-warn', FALLIDO: 'p-no', CARGANDO: 'p-info', PENDIENTE: 'p-info'};
-  return `<span class="pill ${m[c.estado]}" title="${esc(c.error || c.archivoRechazados || '')}">${c.estado.replaceAll('_', ' ').toLowerCase()}</span>`;
+  const pill = `<span class="pill ${m[c.estado]}" title="${esc(c.error || c.archivoRechazados || '')}">${c.estado.replaceAll('_', ' ').toLowerCase()}</span>`;
+  return c.estado === 'FALLIDO' && c.error ? `${pill} <button class="btn chico" onclick='aviso({tipo:"error",titulo:"Por qué falló",detalle:${JSON.stringify(c.error).replace(/'/g, "&#39;")}})'>ver</button>` : pill;
 }
 $('#sincronizar').onclick = async () => {
-  try { const r = await api('/api/bitacora/excel/sincronizar', {method: 'POST'}); mensaje('Excel actualizado: ' + r.ruta); }
-  catch (e) { mensaje(e.message, 'error'); }
+  try { const r = await api('/api/bitacora/excel/sincronizar', {method: 'POST'}); ok('Excel actualizado', r.ruta); }
+  catch (e) { fallo(e, 'No se pudo actualizar el Excel'); }
 };
 $('#descargar').onclick = () => location.href = '/api/bitacora/excel';
 
 // ── Campañas en vivo ──
+let ultimo = null;
 function htmlEvento(e, nuevo) {
-  const ini = (e.evento || e.tipo) === 'INICIO';
+  const ini = e.tipo === 'INICIO';
   return `<li class="${nuevo ? 'nuevo' : ''}"><time>${(e.momento || '').slice(11, 19)}</time>
-    <span><b>${esc(e.campanaId)}</b> ${esc(e.campanaNombre || nomCamp(e.campanaId))}<br><small>${origenTxt(e.origen)}</small></span>
+    <span><b>${esc(e.campanaId)}</b> ${esc(e.campanaNombre || '')}<br><small>${esc(e.operacionNombre || '')} · ${origenTxt(e.origen)}</small></span>
     <span class="pill ${ini ? 'p-ok' : 'p-no'}">${ini ? 'activada' : 'detenida'}</span></li>`;
 }
 function agregarAlFeed(a, nuevo) {
@@ -454,43 +551,146 @@ function agregarAlFeed(a, nuevo) {
   f.insertAdjacentHTML('afterbegin', htmlEvento(a, nuevo));
 }
 $('#fechaHist').onchange = cargarHistorial;
-$('#filtroCamp').onchange = cargarEstado;
+$('#filtroCamp').onchange = pintarVivo;
 $('#escanearCamp').onclick = async () => {
-  $('#escanearCamp').disabled = true;
-  try { const r = await api('/api/campanas/escanear', {method: 'POST'}); mensaje(r.error ? 'Error: ' + r.error : `${r.revisadas} campañas revisadas, ${r.activas} activas, ${r.cambios} cambio(s).`, r.error ? 'error' : 'aviso'); await cargarEstado(); }
-  catch (e) { mensaje(e.message, 'error'); }
-  $('#escanearCamp').disabled = false;
-};
-async function cargarCampanas() { await Promise.all([cargarEstado(), cargarHistorial()]); }
-async function cargarEstado() {
+  $('#escanearCamp').disabled = true; $('#escanearCamp').textContent = 'Revisando…';
   try {
-    const r = await api('/api/campanas/estado');
-    const f = $('#filtroCamp').value;
-    const lista = r.campanas.filter(c => f === '' || (f === '1') === !!c.activa);
-    const activas = r.campanas.filter(c => c.activa).length;
-    const u = r.ultimoEscaneo;
-    $('#infoEscaneo').textContent = u ? `Última revisión ${u.momento.slice(11, 16)} · se revisa sola cada ${catalogos.escaneo || '5m'}` + (u.error ? ' · último error: ' + u.error : '') : 'Esperando la primera revisión…';
-    $('#kpisCamp').innerHTML = [['Activas ahora', activas], ['Detenidas', r.campanas.length - activas], ['Campañas en Wolkvox', r.campanas.length],
-      ['Última revisión', u ? u.momento.slice(11, 16) : '—']].map(([t, v]) => `<div class="kpi"><b>${v}</b><span>${t}</span></div>`).join('');
-    $('#tablaCamp').innerHTML = lista.length ? lista.map(c => `<tr><td>${estadoPill(c.activa)}</td><td>${esc(c.campanaId)}</td><td>${esc(c.nombre)}</td><td>${tipoTxt(c.tipo)}</td>
-      <td class="num">${c.registros != null ? c.registros.toLocaleString('es-CO') : ''}</td><td>${c.desde ? c.desde.slice(0, 10) === hoy ? c.desde.slice(11, 16) : c.desde.slice(0, 16).replace('T', ' ') : '<span style="color:var(--muted)">antes de la 1.ª revisión</span>'}</td></tr>`).join('')
-      : '<tr><td colspan="6" class="vacio">Sin campañas todavía. Pulsa "Escanear ahora".</td></tr>';
-  } catch (e) { mensaje(e.message, 'error'); }
+    const r = await api('/api/campanas/escanear', {method: 'POST'});
+    ultimo = r;
+    r.errores.forEach(x => aviso({tipo: 'error', titulo: 'No se pudo revisar ' + x.operacion + ': ' + x.titulo, detalle: x.detalle, sugerencia: x.sugerencia}));
+    if (!r.errores.length) ok('Revisión terminada', `${r.revisadas} campañas revisadas, ${r.activas} activas, ${r.cambios} cambio(s).`);
+    await traerOps(); pintarVivo();
+  } catch (e) { fallo(e); }
+  $('#escanearCamp').disabled = false; $('#escanearCamp').textContent = 'Escanear ahora';
+};
+async function cargarVivo() {
+  await traerOps();
+  try { ultimo = await api('/api/campanas/ultimo-escaneo') || ultimo; } catch {}
+  pintarVivo(); cargarHistorial();
+}
+function pintarVivo() {
+  const f = $('#filtroCamp').value;
+  const todas = ops.flatMap(o => o.campanas);
+  const activas = todas.filter(c => c.activa).length;
+  const u = ultimo && ultimo.momento ? ultimo.momento.slice(11, 16) : null;
+  $('#infoEscaneo').textContent = (u ? 'Última revisión ' + u : 'Esperando la primera revisión…') + ' · se revisa sola cada ' + (catalogos.escaneo || '5m');
+  const conError = ops.filter(o => o.ultimoError).length;
+  $('#kpisCamp').innerHTML = [['Activas ahora', activas], ['Detenidas', todas.length - activas], ['Campañas registradas', todas.length],
+    ['Servidores con error', conError]].map(([t, v], i) => `<div class="kpi" ${i === 3 && v ? 'style="border-color:var(--no)"' : ''}><b ${i === 3 && v ? 'style="color:var(--no)"' : ''}>${v}</b><span>${t}</span></div>`).join('');
+  if (!ops.length) { $('#estadoOps').innerHTML = '<div class="caja"><div class="vacio">Sin campañas principales.</div></div>'; return; }
+  $('#estadoOps').innerHTML = ops.map(o => {
+    const lista = o.campanas.filter(c => f === '' || (f === '1') === !!c.activa);
+    return `<div class="caja grupo-op"><h4>${esc(o.nombre)} <span class="mono">wv${esc(o.servidor)}</span>${o.tokenValido === false ? '<span class="pill p-no">token con problemas</span>' : ''}</h4>
+      ${o.ultimoError ? `<div style="padding:0 12px 10px">${cajaError({titulo: 'Última revisión con error', message: o.ultimoError})}</div>` : ''}
+      <table><thead><tr><th>Estado</th><th>ID</th><th>Campaña</th><th>Tipo</th><th>Registros</th><th>Desde</th></tr></thead><tbody>${
+      lista.length ? lista.map(c => `<tr><td>${estadoPill(c.activa)}</td><td>${esc(c.campanaId)}</td><td>${esc(c.nombre)}${c.ultimoError ? ` <span class="pill p-no" title="${esc(c.ultimoError)}">⚠ ${esc(c.ultimoError)}</span>` : ''}</td><td>${tipoTxt(c.tipo)}</td>
+        <td class="num">${c.registros != null ? c.registros.toLocaleString('es-CO') : ''}</td><td>${c.desde ? fechaHora(c.desde) : '<span style="color:var(--muted)">desde que se registró</span>'}</td></tr>`).join('')
+      : `<tr><td colspan="6" class="vacio">${o.campanas.length ? 'Ninguna con este filtro.' : 'Sin números de campaña registrados.'}</td></tr>`}</tbody></table></div>`;
+  }).join('');
 }
 async function cargarHistorial() {
   try {
     const ev = await api('/api/campanas/historial?fecha=' + $('#fechaHist').value);
-    $('#feed').innerHTML = ev.length ? ev.map(e => htmlEvento({...e, evento: e.tipo})).join('') : '<li><span></span><span class="vacio" style="padding:8px">Sin activaciones ni detenciones en esta fecha.</span><span></span></li>';
-  } catch (e) { mensaje(e.message, 'error'); }
+    $('#feed').innerHTML = ev.length ? ev.map(e => htmlEvento(e)).join('') : '<li><span></span><span class="vacio" style="padding:8px">Sin activaciones ni detenciones en esta fecha.</span><span></span></li>';
+  } catch (e) { fallo(e); }
+}
+
+// ── Configuración: campañas principales ──
+$('#verToken').onclick = () => { const t = $('#nToken'); t.type = t.type === 'password' ? 'text' : 'password'; $('#verToken').textContent = t.type === 'password' ? 'Mostrar' : 'Ocultar'; };
+$('#crearOp').onclick = async () => {
+  const datos = {nombre: $('#nNombre').value.trim(), servidor: $('#nServidor').value.trim(), token: $('#nToken').value.trim()};
+  ['#nNombre', '#nServidor', '#nToken'].forEach(id => $(id).classList.toggle('campo-error', !$(id).value.trim()));
+  if (!datos.nombre || !datos.servidor || !datos.token) return aviso({tipo: 'warn', titulo: 'Faltan datos', detalle: 'Nombre, servidor y token son obligatorios.'});
+  $('#crearOp').disabled = true; $('#crearOp').textContent = 'Probando el token…'; $('#resNueva').innerHTML = '';
+  try {
+    const o = await api('/api/operaciones', {method: 'POST', body: JSON.stringify(datos)});
+    ['#nNombre', '#nServidor', '#nToken'].forEach(id => $(id).value = '');
+    $('#resNueva').innerHTML = `<div class="caja-ok">✓ Token válido: el servidor wv${esc(o.servidor)} respondió con ${o.campanasServidor} campañas. Ahora registre los números de campaña que usará.</div>`;
+    await traerOps(); pintarConfig(); $('#sinOps').hidden = true;
+  } catch (e) {
+    $('#resNueva').innerHTML = cajaError(e);
+    if (e.estado === 401) $('#nToken').classList.add('campo-error');
+    if (e.titulo && /servidor/i.test(e.titulo)) $('#nServidor').classList.add('campo-error');
+  }
+  $('#crearOp').disabled = false; $('#crearOp').textContent = 'Validar y guardar';
+};
+function pintarConfig() {
+  $('#listaOps').innerHTML = ops.length ? ops.map(o => `
+    <div class="tarjeta op" data-op="${o.id}">
+      <div class="op-cab">
+        <h3>${esc(o.nombre)}</h3><span class="mono">wv${esc(o.servidor)}.wolkvox.com · token ${esc(o.token)}</span>
+        ${o.tokenValido === true ? '<span class="pill p-ok">token válido</span>' : o.tokenValido === false ? '<span class="pill p-no">token inválido</span>' : '<span class="pill p-info">sin validar</span>'}
+        <span class="mono">${o.ultimaValidacion ? 'probado ' + fechaHora(o.ultimaValidacion) : ''}${o.campanasServidor != null ? ' · ' + o.campanasServidor + ' campañas en el servidor' : ''}</span>
+        <span class="sep"></span>
+        <button class="btn chico validar">Probar token</button>
+        <button class="btn chico editar">Editar</button>
+        <button class="btn chico peligro borrar">Quitar</button>
+      </div>
+      ${o.ultimoError ? cajaError({titulo: 'Problema con este servidor', message: o.ultimoError}) : ''}
+      <div class="form editor" hidden style="margin-top:12px">
+        <label>Nombre<input class="eNombre" value="${esc(o.nombre)}" size="20"></label>
+        <label>Servidor<span class="prefijo"><span>wv</span><input class="eServidor" value="${esc(o.servidor)}"></span></label>
+        <label>Token nuevo (vacío = dejar el actual)<input class="eToken" type="password" size="34" autocomplete="off"></label>
+        <button class="btn primario guardar">Validar y guardar</button><button class="btn cancelar">Cancelar</button>
+      </div>
+      <div class="resOp"></div>
+      <div class="caja" style="margin-top:12px">
+        <table><thead><tr><th>ID</th><th>Campaña</th><th>Tipo</th><th>Estado</th><th>Registros</th><th>Última revisión</th><th></th></tr></thead><tbody>${
+          o.campanas.length ? o.campanas.map(c => `<tr><td>${esc(c.campanaId)}</td><td>${esc(c.nombre)}${c.ultimoError ? ` <span class="pill p-no">⚠ ${esc(c.ultimoError)}</span>` : ''}</td><td>${tipoTxt(c.tipo)}</td><td>${estadoPill(c.activa)}</td>
+            <td class="num">${c.registros != null ? c.registros.toLocaleString('es-CO') : ''}</td><td>${fechaHora(c.ultimaRevision)}</td>
+            <td><button class="btn chico peligro quitar" data-c="${esc(c.campanaId)}">Quitar</button></td></tr>`).join('')
+          : '<tr><td colspan="7" class="vacio">Aún no hay números de campaña. Agregue el primero abajo.</td></tr>'}</tbody></table>
+      </div>
+      <div class="form" style="margin-top:10px">
+        <label>Agregar número de campaña<input class="nuevaCamp" placeholder="Ej. 30849" inputmode="numeric" size="16"></label>
+        <button class="btn agregar">Comprobar y agregar</button>
+      </div>
+    </div>`).join('') : '';
+  document.querySelectorAll('#listaOps .op').forEach(card => {
+    const id = +card.dataset.op, o = opDe(id), res = card.querySelector('.resOp');
+    card.querySelector('.validar').onclick = async ev => {
+      ev.target.disabled = true; ev.target.textContent = 'Probando…';
+      try { const v = await api(`/api/operaciones/${id}/validar`, {method: 'POST'}); await traerOps(); pintarConfig();
+        if (v.ultimoError) aviso({tipo: 'error', titulo: 'El token de ' + v.nombre + ' no funcionó', detalle: v.ultimoError}); else ok('Token válido', `${v.nombre}: ${v.campanasServidor} campañas en wv${v.servidor}.`);
+      } catch (e) { fallo(e); ev.target.disabled = false; ev.target.textContent = 'Probar token'; }
+    };
+    card.querySelector('.editar').onclick = () => card.querySelector('.editor').hidden = false;
+    card.querySelector('.cancelar').onclick = () => card.querySelector('.editor').hidden = true;
+    card.querySelector('.guardar').onclick = async ev => {
+      ev.target.disabled = true; ev.target.textContent = 'Probando…';
+      try {
+        await api(`/api/operaciones/${id}`, {method: 'PUT', body: JSON.stringify({nombre: card.querySelector('.eNombre').value, servidor: card.querySelector('.eServidor').value, token: card.querySelector('.eToken').value})});
+        await traerOps(); pintarConfig(); ok('Cambios guardados', o.nombre);
+      } catch (e) { res.innerHTML = cajaError(e); ev.target.disabled = false; ev.target.textContent = 'Validar y guardar'; }
+    };
+    card.querySelector('.borrar').onclick = async () => {
+      if (!confirm(`¿Quitar ${o.nombre}? Si ya tiene cargues se archiva y la bitácora los conserva.`)) return;
+      try { const r = await api(`/api/operaciones/${id}`, {method: 'DELETE'}); await traerOps(); pintarConfig(); ok(o.nombre + (r.resultado === 'archivada' ? ' archivada' : ' eliminada')); }
+      catch (e) { fallo(e); }
+    };
+    card.querySelectorAll('.quitar').forEach(b => b.onclick = async () => {
+      try { await api(`/api/operaciones/${id}/campanas/${encodeURIComponent(b.dataset.c)}`, {method: 'DELETE'}); await traerOps(); pintarConfig(); ok('Campaña ' + b.dataset.c + ' quitada'); }
+      catch (e) { fallo(e); }
+    });
+    const input = card.querySelector('.nuevaCamp');
+    input.onkeydown = e => { if (e.key === 'Enter') card.querySelector('.agregar').click(); };
+    card.querySelector('.agregar').onclick = async ev => {
+      const num = input.value.trim();
+      if (!num) { input.classList.add('campo-error'); return; }
+      ev.target.disabled = true; ev.target.textContent = 'Comprobando en Wolkvox…'; res.innerHTML = '';
+      try { const c = await api(`/api/operaciones/${id}/campanas`, {method: 'POST', body: JSON.stringify({campanaId: num})}); await traerOps(); pintarConfig(); ok('Campaña agregada', `${c.campanaId} · ${c.nombre} (${tipoTxt(c.tipo)})`); }
+      catch (e) { input.classList.add('campo-error'); res.innerHTML = cajaError(e); ev.target.disabled = false; ev.target.textContent = 'Comprobar y agregar'; }
+    };
+  });
 }
 
 // ── Agenda ──
 $('#fechaAg').onchange = cargarAgenda;
-const H0 = 6, H1 = 22; // franja visible 6:00 a 22:00
 const pos = h => Math.max(0, Math.min(100, (h - H0) / (H1 - H0) * 100));
 const aHoras = t => t ? (+t.slice(0,2) + +t.slice(3,5)/60) : null;
 async function cargarAgenda() {
-  const filas = await api('/api/cargues?fecha=' + $('#fechaAg').value);
+  let filas;
+  try { filas = await api('/api/cargues?fecha=' + $('#fechaAg').value); } catch (e) { return fallo(e); }
   let html = `<div class="horas"><div></div><div>${Array.from({length:16}, (_, i) => `<span>${H0+i}:00</span>`).join('')}</div></div>`;
   const ahora = new Date(); const esHoy = $('#fechaAg').value === hoy;
   const hAhora = ahora.getHours() + ahora.getMinutes()/60;
@@ -498,7 +698,7 @@ async function cargarAgenda() {
     const pi = aHoras(c.horaInicioPlan), pf = aHoras(c.horaFinPlan);
     const ri = c.inicioCampana ? aHoras(c.inicioCampana.slice(11)) : null;
     const rf = c.finCampana ? aHoras(c.finCampana.slice(11)) : (ri != null && esHoy ? hAhora : ri);
-    html += `<div class="fila"><div class="nom" title="${esc(c.nombreLista)}"><b>${esc(c.campanaId)}</b> ${esc(c.nombreLista)}</div><div class="pista">
+    html += `<div class="fila"><div class="nom" title="${esc(c.operacionNombre)} · ${esc(c.nombreLista)}"><b>${esc(c.campanaId)}</b> ${esc(c.nombreLista)}</div><div class="pista">
       ${pi != null ? `<div class="bar plan" style="left:${pos(pi)}%;width:${pos(pf ?? pi + 1) - pos(pi)}%">${t5(c.horaInicioPlan)}–${t5(c.horaFinPlan)}</div>` : ''}
       ${ri != null ? `<div class="bar real" style="left:${pos(ri)}%;width:${Math.max(.4, pos(rf) - pos(ri))}%"></div>` : ''}
       ${esHoy ? `<div class="ahora" style="left:${pos(hAhora)}%"></div>` : ''}
@@ -511,13 +711,17 @@ async function cargarAgenda() {
 // ── Métricas ──
 $('#fechaMet').onchange = cargarMetricas; $('#campMet').onchange = cargarMetricas;
 $('#recolectar').onclick = async () => {
-  try { const r = await api('/api/metricas/recolectar?fecha=' + $('#fechaMet').value, {method: 'POST'}); mensaje(r.cortes + ' cortes guardados.'); cargarMetricas(); }
-  catch (e) { mensaje(e.message, 'error'); }
+  $('#recolectar').disabled = true;
+  try { const r = await api('/api/metricas/recolectar?fecha=' + $('#fechaMet').value, {method: 'POST'}); ok('Métricas recolectadas', r.cortes + ' cortes guardados.'); cargarMetricas(); }
+  catch (e) { fallo(e); }
+  $('#recolectar').disabled = false;
 };
 async function cargarMetricas() {
-  const [cortes, cargues] = await Promise.all([api('/api/metricas?fecha=' + $('#fechaMet').value), api('/api/cargues?fecha=' + $('#fechaMet').value)]);
-  const f = $('#campMet').value; const datos = cortes.filter(c => !f || c.campanaId === f);
-  const cg = cargues.filter(c => !f || c.campanaId === f);
+  let cortes, cargues;
+  try { [cortes, cargues] = await Promise.all([api('/api/metricas?fecha=' + $('#fechaMet').value), api('/api/cargues?fecha=' + $('#fechaMet').value)]); } catch (e) { return fallo(e); }
+  const f = $('#campMet').value; const [fo, fc] = f ? f.split('|') : [];
+  const coincide = x => !f || (String(x.operacionId) === fo && x.campanaId === fc);
+  const datos = cortes.filter(coincide), cg = cargues.filter(coincide);
   const sum = (a, k) => a.reduce((s, x) => s + (x[k] || 0), 0);
   const cargados = sum(cg, 'registrosCargados'), gest = sum(cg, 'totalGestionado');
   $('#kpis').innerHTML = [
@@ -527,8 +731,8 @@ async function cargarMetricas() {
     ['% gestión', cargados ? Math.round(gest * 100 / cargados) + '%' : '0%'],
     ['Máx. agentes en una hora', Math.max(0, ...porHora(datos).map(h => h.agentesConectados))]
   ].map(([t, v]) => `<div class="kpi"><b>${v}</b><span>${t}</span></div>`).join('');
-  $('#metricas').innerHTML = datos.length ? datos.map(m => `<tr><td>${m.hora.slice(11,16)}</td><td>${esc(m.campanaId)}</td><td class="num">${m.agentesConectados}</td><td class="num">${m.registrosBarridos}</td><td class="num">${m.gestionados}</td></tr>`).join('')
-    : '<tr><td colspan="5" class="vacio">Sin cortes todavía. Se guardan solos cada hora cuando hay campañas activas.</td></tr>';
+  $('#metricas').innerHTML = datos.length ? datos.map(m => `<tr><td>${m.hora.slice(11,16)}</td><td>${esc(opDe(m.operacionId)?.nombre || '')}</td><td>${esc(m.campanaId)} ${esc(nomCamp(m.operacionId, m.campanaId))}</td><td class="num">${m.agentesConectados}</td><td class="num">${m.registrosBarridos}</td><td class="num">${m.gestionados}</td></tr>`).join('')
+    : '<tr><td colspan="6" class="vacio">Sin cortes todavía. Se guardan solos cada hora cuando hay campañas activas.</td></tr>';
   dibujar(porHora(datos));
 }
 function porHora(datos) {
@@ -538,7 +742,6 @@ function porHora(datos) {
 }
 function dibujar(datos) {
   if (!datos.length) { $('#grafico').innerHTML = '<div class="vacio">Registros barridos y agentes conectados por hora aparecerán aquí.</div>'; return; }
-  // Eje fijo de 6:00 a 21:00 para que las horas se comparen entre días
   const horas = Array.from({length: H1 - H0}, (_, i) => String(H0 + i).padStart(2, '0'));
   const m = Object.fromEntries(datos.map(x => [x.h, x]));
   const h = horas.map(x => m[x] || {h: x, agentesConectados: 0, registrosBarridos: 0});
@@ -554,6 +757,7 @@ function dibujar(datos) {
     <text x="${P}" y="16" font-size="11" fill="var(--muted)">Barras: registros barridos (máx. ${max}) · Línea: agentes conectados (máx. ${maxA})</text></svg>`;
 }
 
+window.addEventListener('unhandledrejection', ev => fallo(ev.reason || {}, 'Error inesperado en la pantalla'));
 inicio();
 </script>
 </body>

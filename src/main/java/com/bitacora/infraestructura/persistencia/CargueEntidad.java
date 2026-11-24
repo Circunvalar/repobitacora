@@ -25,6 +25,8 @@ public class CargueEntidad {
     @Column(name = "inicio_campana") public LocalDateTime inicioCampana;
     @Column(name = "fin_campana") public LocalDateTime finCampana;
 
+    @Column(name = "operacion_id") public Long operacionId;
+    @Column(name = "operacion_nombre") public String operacionNombre;
     @Column(name = "campana_id") public String campanaId;
     @Column(name = "campana_nombre") public String campanaNombre;
     @Enumerated(EnumType.STRING) @Column(name = "tipo_marcacion") public TipoMarcacion tipoMarcacion;

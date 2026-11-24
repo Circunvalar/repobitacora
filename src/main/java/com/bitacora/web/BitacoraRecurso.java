@@ -71,8 +71,6 @@ public class BitacoraRecurso {
         return Map.of("jefes", config.catalogos().jefes(),
                 "estrategias", List.of("NUEVA", "REMARCACION"),
                 "carpetaEntrada", config.carpetas().entrada(),
-                "modoWolkvox", config.wolkvox().usarHttp() ? "http" : "simulado",
-                "servidorWolkvox", config.wolkvox().servidor().orElse(""),
                 "escaneo", config.campanas().escaneo(),
                 "autoActivar", config.campanas().autoActivar());
     }

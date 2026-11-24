@@ -4,8 +4,12 @@ Aplicación web en Quarkus que toma los CSV de una carpeta, los valida con la pl
 los carga a cualquier campaña (predictiva o preview), deja cada cargue en la bitácora y en un Excel,
 registra la hora exacta de activación/detención de la campaña y guarda métricas por hora.
 
-Nada está atado a una campaña: las campañas se leen de Wolkvox y todo lo demás (carpetas, columnas,
-jefes, rutas de la API) está en `src/main/resources/application.properties`.
+Es **multicampaña**: cada campaña principal (operación) tiene su propio servidor `wvXXXX` y su token.
+Se registran en la pantalla "Campañas y servidores": el token se valida contra Wolkvox antes de guardarse y
+se muestra enmascarado. Los números de campaña se escriben a mano, se comprueban en el servidor de esa
+campaña principal y quedan guardados para los próximos cargues. No hay modo simulado: todo va contra Wolkvox.
+Los errores de la API (códigos documentados por Wolkvox) se traducen a mensajes con qué hacer, en avisos y
+recuadros rojos en la pantalla.
 
 ## Documentos
 - `docs/diagrama-sistema.html`: diagrama de sistema, módulos y respuestas sobre la API de Wolkvox.
@@ -15,8 +19,8 @@ jefes, rutas de la API) está en `src/main/resources/application.properties`.
 El paquete `BitacoraDigital.zip` trae todo: `bitacora-digital.jar`, `Iniciar-Bitacora.bat`, `iniciar.ps1`,
 `config/application.properties` y `LEEME.txt` (los archivos de `distribucion/` más el jar).
 
-1. Llenar `bitacora.wolkvox.servidor` y `bitacora.wolkvox.token` en `config/application.properties`.
-2. Doble clic en `Iniciar-Bitacora.bat` → abre http://localhost:4444.
+1. Doble clic en `Iniciar-Bitacora.bat` → abre http://localhost:4444.
+2. "Campañas y servidores": registrar cada campaña principal (nombre, servidor, token) y sus números de campaña.
 
 - Base de datos **H2 embebida** (archivo), sin instalar motor. El lanzador la deja en
   `%LOCALAPPDATA%\BitacoraDigital\db` para que OneDrive no la sincronice. Migraciones con Flyway.
@@ -38,9 +42,7 @@ Todo está en `src/main/resources/application.properties`; en el equipo se sobre
 
 | Propiedad / variable | Para qué |
 |---|---|
-| `bitacora.wolkvox.servidor` / `WOLKVOX_SERVIDOR` | Número después de "wv" en la URL de Manager (wv**0003**.wolkvox.com → `0003`) |
-| `bitacora.wolkvox.token` / `WOLKVOX_TOKEN` | Token de Manager → Configuración → Integraciones → Tokens |
-| `bitacora.wolkvox.modo` | `auto` (real si hay servidor y token), `http` o `simulado` |
+| `bitacora.wolkvox.url-base` | `https://wv{servidor}.wolkvox.com/api/v2/` (el servidor sale de cada campaña principal) |
 | `bitacora.campanas.escaneo` | Intervalo del escaneo de campañas activas (`5m`; `off` lo apaga) |
 | `bitacora.carpetas.entrada` / `BITACORA_ENTRADA` | Carpeta de CSV, p. ej. la carpeta de SharePoint sincronizada |
 | `bitacora.excel.ruta` / `BITACORA_EXCEL` | Ruta del Excel de la bitácora |
@@ -84,7 +86,7 @@ la app avisa y se actualiza con el botón "Actualizar Excel" cuando se cierre.
 dominio/        modelo y puertos (WolkvoxPuerto, ArchivosPuerto, BitacoraExcelPuerto) — sin frameworks
 aplicacion/     casos de uso: CargueServicio, CampanaServicio, BitacoraServicio, MetricasServicio, ValidadorCsv
 infraestructura/
-  wolkvox/      WolkvoxSimuladoAdaptador, WolkvoxHttpAdaptador (reintentos, timeout, máx. 2 llamadas simultáneas)
+  wolkvox/      WolkvoxHttpAdaptador (reintentos, timeout, máx. 2 llamadas simultáneas por token, traducción de errores)
   archivos/     CarpetaLocalAdaptador (CSV con coma o punto y coma, UTF-8 o ANSI)
   excel/        ExcelBitacoraAdaptador (Apache POI)
   persistencia/ entidades y repositorios Panache, migraciones Flyway
