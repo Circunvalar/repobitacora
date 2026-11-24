@@ -55,13 +55,25 @@ public class BitacoraRecurso {
         return Map.of("cortes", metricas.recolectar(fecha != null ? fecha : LocalDate.now()));
     }
 
+    /** Hora de gestión seleccionada: listas activas en esa hora, cortes por campaña y activaciones/detenciones. */
+    @GET
+    @Path("/bitacora/hora")
+    public Map<String, Object> hora(@QueryParam("fecha") LocalDate fecha, @QueryParam("hora") int hora) {
+        if (hora < 0 || hora > 23) throw new IllegalArgumentException("La hora debe estar entre 0 y 23");
+        MetricasServicio.VistaHora v = metricas.hora(fecha != null ? fecha : LocalDate.now(), hora);
+        return Map.of("hora", v.hora(), "cargues", v.cargues().stream().map(CargueDto::de).toList(),
+                "cortes", v.cortes(), "eventos", v.eventos());
+    }
+
     @GET
     @Path("/catalogos")
     public Map<String, Object> catalogos() {
         return Map.of("jefes", config.catalogos().jefes(),
                 "estrategias", List.of("NUEVA", "REMARCACION"),
                 "carpetaEntrada", config.carpetas().entrada(),
-                "modoWolkvox", config.wolkvox().modo(),
+                "modoWolkvox", config.wolkvox().usarHttp() ? "http" : "simulado",
+                "servidorWolkvox", config.wolkvox().servidor().orElse(""),
+                "escaneo", config.campanas().escaneo(),
                 "autoActivar", config.campanas().autoActivar());
     }
 }

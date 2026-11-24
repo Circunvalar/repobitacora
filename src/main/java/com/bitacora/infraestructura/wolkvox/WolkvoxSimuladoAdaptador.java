@@ -33,7 +33,8 @@ public class WolkvoxSimuladoAdaptador implements WolkvoxPuerto {
 
     @Override
     public List<Campana> campanas() {
-        return campanas;
+        return campanas.stream().map(c -> new Campana(c.id(), c.nombre(), c.tipo(),
+                activas.getOrDefault(c.id(), false), 1000)).toList();
     }
 
     @Override

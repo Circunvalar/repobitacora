@@ -62,19 +62,44 @@ tr:last-child td{border-bottom:0}
 .leyenda{display:flex;gap:16px;font-size:12px;color:var(--muted)}
 .leyenda i{display:inline-block;width:14px;height:10px;border-radius:2px;margin-right:6px;vertical-align:middle}
 .grafico svg{display:block;width:100%;height:auto}
+.paso{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:0 0 8px}
+.tarjeta{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 16px}
+.destino{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.destino select{max-width:420px;min-width:260px}
+.vivo{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.vivo i{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.vivo.on i{background:var(--ok);box-shadow:0 0 0 3px var(--ok-soft)}
+.horas-sel{display:flex;flex-wrap:wrap;gap:4px}
+.horas-sel button{border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:4px 9px;border-radius:5px;font:12px var(--mono);cursor:pointer}
+.horas-sel button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:#fff}
+.horas-sel button.con-datos{border-color:var(--accent)}
+.dos{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:16px}
+@media (max-width:1000px){.dos{grid-template-columns:minmax(0,1fr)}}
+.feed{list-style:none;margin:0;padding:0;max-height:560px;overflow:auto}
+.feed li{display:grid;grid-template-columns:64px 1fr auto;gap:10px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--line)}
+.feed li:last-child{border-bottom:0}
+.feed li.nuevo{animation:resalta 3s ease-out}
+@keyframes resalta{from{background:var(--accent-soft)}to{background:transparent}}
+.feed time{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.feed small{color:var(--muted)}
+.banner{padding:10px 24px;background:var(--warn-soft);color:var(--warn);font-size:13px}
+.panel-hora{margin-top:12px}
+.panel-hora h3{margin:0 0 10px;font-size:15px}
 [hidden]{display:none!important}
 </style>
 </head>
 <body>
+<div class="banner" id="bannerSim" hidden>Modo simulado: no se envía nada a Wolkvox. Para usar el servidor real, llena <b>servidor</b> y <b>token</b> en <code>config\application.properties</code> y reinicia el programa.</div>
 <header>
   <h1>Bitácora Digital de Cargues</h1>
   <nav role="tablist">
     <button role="tab" data-v="cargar" aria-selected="true">Cargar listas</button>
     <button role="tab" data-v="bitacora" aria-selected="false">Bitácora</button>
+    <button role="tab" data-v="campanas" aria-selected="false">Campañas en vivo</button>
     <button role="tab" data-v="agenda" aria-selected="false">Agenda del día</button>
     <button role="tab" data-v="metricas" aria-selected="false">Métricas por hora</button>
   </nav>
-  <span class="modo" id="modo"></span>
+  <span><span class="vivo" id="vivo" title="Conexión en tiempo real"><i></i><span>desconectado</span></span> &nbsp; <span class="modo" id="modo"></span></span>
 </header>
 
 <main>
@@ -82,18 +107,30 @@ tr:last-child td{border-bottom:0}
 
   <!-- CARGAR -->
   <section id="v-cargar">
-    <div class="barra">
-      <button class="btn" id="escanear">Escanear carpeta</button>
-      <span class="modo" id="carpeta"></span>
-      <span class="sep"></span>
-      <label>Fecha <input type="date" id="fechaCargue"></label>
-      <button class="btn primario" id="cargarSel" disabled>Cargar seleccionados</button>
+    <div class="tarjeta">
+      <p class="paso">1 · Campaña destino (leída del servidor Wolkvox)</p>
+      <div class="destino">
+        <input type="search" id="buscaCamp" placeholder="Buscar por ID o nombre" size="24" aria-label="Buscar campaña">
+        <select id="campDestino" aria-label="Campaña destino"><option value="">Cargando campañas…</option></select>
+        <button class="btn" id="refrescarCamp">Actualizar desde Wolkvox</button>
+        <span id="infoCamp" class="modo"></span>
+      </div>
     </div>
-    <div class="caja" style="margin-top:12px">
-      <table>
-        <thead><tr><th></th><th>Archivo</th><th>Filas</th><th>Revisión</th><th>Campaña</th><th>Estrategia</th><th>Jefe</th><th>Nombre estrategia</th><th>Inicio</th><th>Fin</th></tr></thead>
-        <tbody id="archivos"><tr><td colspan="10" class="vacio">Pulsa "Escanear carpeta" para ver los CSV pendientes.</td></tr></tbody>
-      </table>
+    <div class="tarjeta" style="margin-top:12px">
+      <p class="paso">2 · Archivos a cargar</p>
+      <div class="barra">
+        <button class="btn" id="escanear">Escanear carpeta</button>
+        <span class="modo" id="carpeta"></span>
+        <span class="sep"></span>
+        <label>Fecha <input type="date" id="fechaCargue"></label>
+        <button class="btn primario" id="cargarSel" disabled>Cargar seleccionados</button>
+      </div>
+      <div class="caja" style="margin-top:12px">
+        <table>
+          <thead><tr><th></th><th>Archivo</th><th>Filas</th><th>Revisión</th><th>Campaña</th><th>Estrategia</th><th>Jefe</th><th>Nombre estrategia</th><th>Inicio</th><th>Fin</th></tr></thead>
+          <tbody id="archivos"><tr><td colspan="10" class="vacio">Elige la campaña y pulsa "Escanear carpeta" para ver los CSV pendientes.</td></tr></tbody>
+        </table>
+      </div>
     </div>
   </section>
 
@@ -105,11 +142,36 @@ tr:last-child td{border-bottom:0}
       <button class="btn" id="sincronizar">Actualizar Excel</button>
       <button class="btn" id="descargar">Descargar Excel</button>
     </div>
+    <div class="tarjeta" style="margin-top:12px">
+      <p class="paso">Hora de gestión</p>
+      <div class="horas-sel" id="horasSel"></div>
+      <div class="panel-hora" id="panelHora" hidden></div>
+    </div>
     <div class="caja" style="margin-top:12px">
       <table>
         <thead><tr><th>Hora inicio</th><th>Hora final</th><th>ID</th><th>Nombre de lista</th><th>Campaña</th><th>Estrategia</th><th>Remarc.</th><th>Jefe</th><th>Cargados</th><th>No válidos</th><th>Gestionado</th><th>Marcación</th><th>% Gestión</th><th>Informe</th><th>Nombre estrategia</th><th>Estado</th><th>Campaña</th></tr></thead>
         <tbody id="bitacora"></tbody>
       </table>
+    </div>
+  </section>
+
+  <!-- CAMPAÑAS EN VIVO -->
+  <section id="v-campanas" hidden>
+    <div class="barra">
+      <span class="modo" id="infoEscaneo"></span>
+      <span class="sep"></span>
+      <label>Ver <select id="filtroCamp"><option value="">Todas</option><option value="1">Activas</option><option value="0">Detenidas</option></select></label>
+      <button class="btn" id="escanearCamp">Escanear ahora</button>
+    </div>
+    <div class="kpis" id="kpisCamp" style="margin-top:12px"></div>
+    <div class="dos" style="margin-top:12px">
+      <div class="caja">
+        <table><thead><tr><th>Estado</th><th>ID</th><th>Campaña</th><th>Tipo</th><th>Registros</th><th>Desde</th></tr></thead><tbody id="tablaCamp"></tbody></table>
+      </div>
+      <div class="caja">
+        <div class="barra" style="padding:10px 12px;border-bottom:1px solid var(--line)"><b>Histórico de activación</b><span class="sep"></span><input type="date" id="fechaHist" aria-label="Fecha del histórico"></div>
+        <ul class="feed" id="feed"></ul>
+      </div>
     </div>
   </section>
 
@@ -141,7 +203,7 @@ tr:last-child td{border-bottom:0}
 <script>
 const $ = s => document.querySelector(s);
 const hoy = new Date(Date.now() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
-['#fechaCargue','#fechaBit','#fechaAg','#fechaMet'].forEach(id => $(id).value = hoy);
+['#fechaCargue','#fechaBit','#fechaAg','#fechaMet','#fechaHist'].forEach(id => $(id).value = hoy);
 let campanas = [], catalogos = {}, archivos = [];
 
 async function api(url, opts = {}) {
@@ -163,23 +225,81 @@ const t5 = t => t ? t.slice(0,5) : '';
 document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
   document.querySelectorAll('nav button').forEach(x => x.setAttribute('aria-selected', x === b));
   document.querySelectorAll('main > section').forEach(s => s.hidden = s.id !== 'v-' + b.dataset.v);
-  ({bitacora: cargarBitacora, agenda: cargarAgenda, metricas: cargarMetricas})[b.dataset.v]?.();
+  ({bitacora: cargarBitacora, campanas: cargarCampanas, agenda: cargarAgenda, metricas: cargarMetricas})[b.dataset.v]?.();
 });
 
 async function inicio() {
   try {
-    [catalogos, campanas] = await Promise.all([api('/api/catalogos'), api('/api/campanas')]);
-    $('#modo').textContent = 'Wolkvox: ' + catalogos.modoWolkvox + (catalogos.autoActivar ? ' · activación por horario' : '');
+    catalogos = await api('/api/catalogos');
+    $('#modo').textContent = 'Wolkvox: ' + (catalogos.modoWolkvox === 'http' ? 'wv' + catalogos.servidorWolkvox : 'simulado') + (catalogos.autoActivar ? ' · activación por horario' : '');
+    $('#bannerSim').hidden = catalogos.modoWolkvox === 'http';
     $('#carpeta').textContent = catalogos.carpetaEntrada;
-    $('#campMet').innerHTML += campanas.map(c => `<option value="${esc(c.id)}">${esc(c.id)} · ${esc(c.nombre)}</option>`).join('');
   } catch (e) { mensaje(e.message, 'error'); }
+  await traerCampanas(false);
+  conectarVivo();
 }
+
+// ── Campañas del servidor ──
+const tipoTxt = t => t === 'PREVIEW' ? 'Preview' : 'Predictiva';
+const estadoPill = a => a == null ? '<span class="pill p-info">¿?</span>' : a ? '<span class="pill p-ok">activa</span>' : '<span class="pill p-no">detenida</span>';
+async function traerCampanas(refrescar) {
+  try {
+    campanas = await api('/api/campanas' + (refrescar ? '?refrescar=true' : ''));
+    pintarDestino();
+    const sel = $('#campMet').value;
+    $('#campMet').innerHTML = '<option value="">Todas</option>' + campanas.map(c => `<option value="${esc(c.id)}">${esc(c.id)} · ${esc(c.nombre)}</option>`).join('');
+    $('#campMet').value = sel;
+    if (refrescar) mensaje(campanas.length + ' campañas leídas de Wolkvox.');
+  } catch (e) { $('#campDestino').innerHTML = '<option value="">No se pudieron leer las campañas</option>'; mensaje('Wolkvox: ' + e.message, 'error'); }
+}
+function pintarDestino() {
+  const q = $('#buscaCamp').value.trim().toLowerCase(); const actual = $('#campDestino').value;
+  const lista = campanas.filter(c => !q || c.id.toLowerCase().includes(q) || c.nombre.toLowerCase().includes(q));
+  $('#campDestino').innerHTML = '<option value="">Elegir campaña… (' + lista.length + ')</option>' + lista.map(c =>
+    `<option value="${esc(c.id)}">${esc(c.id)} · ${esc(c.nombre)} · ${tipoTxt(c.tipo)}${c.activa == null ? '' : c.activa ? ' · activa' : ' · detenida'}</option>`).join('');
+  if (lista.some(c => c.id === actual)) $('#campDestino').value = actual;
+  infoDestino();
+}
+function infoDestino() {
+  const c = campanas.find(x => x.id === $('#campDestino').value);
+  $('#infoCamp').innerHTML = c ? `${tipoTxt(c.tipo)} · ${estadoPill(c.activa)} ${c.registros != null ? '· ' + c.registros.toLocaleString('es-CO') + ' registros' : ''}` : '';
+  document.querySelectorAll('#archivos .camp').forEach(s => { if (!s.dataset.tocado) s.value = $('#campDestino').value; });
+}
+$('#buscaCamp').oninput = pintarDestino;
+$('#campDestino').onchange = infoDestino;
+$('#refrescarCamp').onclick = () => traerCampanas(true);
+
+// ── Tiempo real ──
+let fuente;
+function conectarVivo() {
+  if (fuente) fuente.close();
+  fuente = new EventSource('/api/campanas/eventos');
+  const marca = (on) => { $('#vivo').classList.toggle('on', on); $('#vivo span').textContent = on ? 'en vivo' : 'reconectando…'; };
+  fuente.onopen = () => marca(true);
+  fuente.onerror = () => marca(false);
+  fuente.onmessage = ev => {
+    marca(true);
+    const a = JSON.parse(ev.data);
+    if (a.tipo === 'CAMBIO') {
+      const c = campanas.find(x => x.id === a.campanaId); if (c) c.activa = a.evento === 'INICIO';
+      pintarDestino();
+      if ($('#fechaHist').value === a.momento.slice(0, 10)) agregarAlFeed(a, true);
+      mensaje(`${a.campanaId} · ${a.campanaNombre || ''} ${a.evento === 'INICIO' ? 'se activó' : 'se detuvo'} a las ${a.momento.slice(11, 16)} (${origenTxt(a.origen)})`);
+      if (!$('#v-bitacora').hidden) cargarBitacora();
+      if (!$('#v-campanas').hidden) cargarEstado();
+    } else if (a.tipo === 'ESCANEO') {
+      if (a.error) mensaje('El escaneo de campañas falló: ' + a.error, 'error');
+      if (!$('#v-campanas').hidden) cargarEstado();
+    }
+  };
+}
+const origenTxt = o => ({APP: 'desde la app', HORARIO: 'por horario', ESCANEO: 'detectado en Wolkvox'})[o] || o;
 
 // ── Cargar ──
 $('#escanear').onclick = async () => {
   try {
     archivos = await api('/api/archivos');
-    const opCamp = '<option value="">Elegir…</option>' + campanas.map(c => `<option value="${esc(c.id)}">${esc(c.id)} · ${esc(c.nombre)} (${c.tipo})</option>`).join('');
+    const opCamp = '<option value="">Elegir…</option>' + campanas.map(c => `<option value="${esc(c.id)}">${esc(c.id)} · ${esc(c.nombre)} (${tipoTxt(c.tipo)})</option>`).join('');
     const opJefe = '<option value=""></option>' + catalogos.jefes.map(j => `<option>${esc(j)}</option>`).join('');
     $('#archivos').innerHTML = archivos.length ? archivos.map((a, i) => `
       <tr data-i="${i}">
@@ -194,6 +314,7 @@ $('#escanear').onclick = async () => {
         <td><input type="time" class="hi"></td>
         <td><input type="time" class="hf"></td>
       </tr>`).join('') : '<tr><td colspan="10" class="vacio">No hay CSV en la carpeta.</td></tr>';
+    document.querySelectorAll('#archivos .camp').forEach(s => { s.value = $('#campDestino').value; s.onchange = () => s.dataset.tocado = '1'; });
     document.querySelectorAll('.sel').forEach(c => c.onchange = actualizarBoton);
     document.querySelectorAll('.revisar').forEach(b => b.onclick = revisar);
     actualizarBoton();
@@ -212,7 +333,7 @@ async function revisar(ev) {
 $('#cargarSel').onclick = async () => {
   const filas = [...document.querySelectorAll('.sel:checked')].map(c => c.closest('tr'));
   const sinCamp = filas.filter(tr => !tr.querySelector('.camp').value);
-  if (sinCamp.length) return mensaje('Elige la campaña de cada archivo seleccionado.');
+  if (sinCamp.length) return mensaje('Elige la campaña destino (paso 1) o la campaña de cada archivo seleccionado.');
   const cargues = filas.map(tr => ({
     archivo: archivos[tr.dataset.i].nombre, campanaId: tr.querySelector('.camp').value,
     estrategia: tr.querySelector('.est').value, jefe: tr.querySelector('.jefe').value || null,
@@ -231,10 +352,59 @@ $('#cargarSel').onclick = async () => {
 };
 
 // ── Bitácora ──
-$('#fechaBit').onchange = cargarBitacora;
+$('#fechaBit').onchange = () => { horaSel = null; cargarBitacora(); };
+let horaSel = null;
+const nomCamp = id => (campanas.find(c => c.id === id) || {}).nombre || '';
+function enHora(c, h) {
+  const ini = h * 60, fin = ini + 60, min = t => +t.slice(0, 2) * 60 + +t.slice(3, 5);
+  if (c.inicioCampana) {
+    const i = c.inicioCampana.slice(0, 10) < $('#fechaBit').value ? 0 : min(c.inicioCampana.slice(11));
+    const f = c.finCampana ? (c.finCampana.slice(0, 10) > $('#fechaBit').value ? 1440 : min(c.finCampana.slice(11))) : ($('#fechaBit').value === hoy ? new Date().getHours() * 60 + new Date().getMinutes() : 1440);
+    return i < fin && f >= ini;
+  }
+  if (!c.horaInicioPlan) return false;
+  const pi = min(c.horaInicioPlan), pf = c.horaFinPlan ? min(c.horaFinPlan) : pi + 60;
+  return pi < fin && pf > ini;
+}
+function pintarHoras(filas) {
+  let html = `<button aria-pressed="${horaSel == null}" data-h="">Todo el día</button>`;
+  for (let h = H0; h < H1; h++) {
+    const hay = filas.some(c => enHora(c, h));
+    html += `<button aria-pressed="${horaSel === h}" data-h="${h}" class="${hay ? 'con-datos' : ''}" title="${hay ? 'Hubo listas activas' : 'Sin listas'}">${String(h).padStart(2, '0')}:00</button>`;
+  }
+  $('#horasSel').innerHTML = html;
+  $('#horasSel').querySelectorAll('button').forEach(b => b.onclick = () => { horaSel = b.dataset.h === '' ? null : +b.dataset.h; cargarBitacora(); });
+}
+async function pintarPanelHora() {
+  const p = $('#panelHora');
+  if (horaSel == null) { p.hidden = true; return; }
+  try {
+    const v = await api(`/api/bitacora/hora?fecha=${$('#fechaBit').value}&hora=${horaSel}`);
+    const sum = (a, k) => a.reduce((s, x) => s + (x[k] || 0), 0);
+    const hh = String(horaSel).padStart(2, '0');
+    p.innerHTML = `<h3>Gestión de ${hh}:00 a ${String(horaSel + 1).padStart(2, '0')}:00</h3>
+      <div class="kpis">${[
+        ['Listas activas', v.cargues.length],
+        ['Agentes conectados', sum(v.cortes, 'agentesConectados')],
+        ['Registros barridos', sum(v.cortes, 'registrosBarridos').toLocaleString('es-CO')],
+        ['Gestionados', sum(v.cortes, 'gestionados').toLocaleString('es-CO')],
+        ['Activaciones / detenciones', v.eventos.length]
+      ].map(([t, x]) => `<div class="kpi"><b>${x}</b><span>${t}</span></div>`).join('')}</div>
+      <div class="dos" style="margin-top:12px">
+        <div class="caja"><table><thead><tr><th>Campaña</th><th>Agentes</th><th>Barridos</th><th>Gestionados</th></tr></thead><tbody>${
+          v.cortes.length ? v.cortes.map(m => `<tr><td>${esc(m.campanaId)} · ${esc(nomCamp(m.campanaId))}</td><td class="num">${m.agentesConectados}</td><td class="num">${m.registrosBarridos}</td><td class="num">${m.gestionados}</td></tr>`).join('')
+          : '<tr><td colspan="4" class="vacio">Sin corte de esta hora todavía. Se guarda al minuto 2 de la hora siguiente (o con "Recolectar ahora" en Métricas).</td></tr>'}</tbody></table></div>
+        <div class="caja"><ul class="feed">${v.eventos.length ? v.eventos.map(e => htmlEvento(e)).join('') : '<li><span></span><span class="vacio" style="padding:8px">Sin activaciones ni detenciones en esta hora.</span><span></span></li>'}</ul></div>
+      </div>`;
+    p.hidden = false;
+  } catch (e) { mensaje(e.message, 'error'); }
+}
 async function cargarBitacora() {
   try {
-    const filas = await api('/api/cargues?fecha=' + $('#fechaBit').value);
+    const todas = await api('/api/cargues?fecha=' + $('#fechaBit').value);
+    pintarHoras(todas);
+    pintarPanelHora();
+    const filas = horaSel == null ? todas : todas.filter(c => enHora(c, horaSel));
     $('#bitacora').innerHTML = filas.length ? filas.map(c => `
       <tr data-id="${c.id}">
         <td>${hhmm(c.inicioCampana) || '<span style="color:var(--muted)">' + t5(c.horaInicioPlan) + '</span>'}</td>
@@ -250,7 +420,7 @@ async function cargarBitacora() {
         <td>${esc(c.nombreEstrategia)}</td>
         <td>${estado(c)}</td>
         <td>${c.registrosCargados ? `<button class="btn act" data-c="${esc(c.campanaId)}" data-a="${c.inicioCampana && !c.finCampana ? 'detener' : 'iniciar'}">${c.inicioCampana && !c.finCampana ? 'Detener' : 'Iniciar'}</button>` : ''}</td>
-      </tr>`).join('') : '<tr><td colspan="17" class="vacio">No hay cargues en esta fecha.</td></tr>';
+      </tr>`).join('') : (horaSel == null ? '<tr><td colspan="17" class="vacio">No hay cargues en esta fecha.</td></tr>' : '<tr><td colspan="17" class="vacio">Ninguna lista estuvo activa en esta hora.</td></tr>');
     document.querySelectorAll('.inf').forEach(b => b.onclick = async () => {
       const tr = b.closest('tr'); const ok = b.textContent.trim() === 'OK';
       await api('/api/cargues/' + tr.dataset.id, {method: 'PATCH', body: JSON.stringify({descargaInforme: ok ? 'PDT' : 'OK'})});
@@ -271,6 +441,48 @@ $('#sincronizar').onclick = async () => {
   catch (e) { mensaje(e.message, 'error'); }
 };
 $('#descargar').onclick = () => location.href = '/api/bitacora/excel';
+
+// ── Campañas en vivo ──
+function htmlEvento(e, nuevo) {
+  const ini = (e.evento || e.tipo) === 'INICIO';
+  return `<li class="${nuevo ? 'nuevo' : ''}"><time>${(e.momento || '').slice(11, 19)}</time>
+    <span><b>${esc(e.campanaId)}</b> ${esc(e.campanaNombre || nomCamp(e.campanaId))}<br><small>${origenTxt(e.origen)}</small></span>
+    <span class="pill ${ini ? 'p-ok' : 'p-no'}">${ini ? 'activada' : 'detenida'}</span></li>`;
+}
+function agregarAlFeed(a, nuevo) {
+  const f = $('#feed'); if (f.querySelector('.vacio')) f.innerHTML = '';
+  f.insertAdjacentHTML('afterbegin', htmlEvento(a, nuevo));
+}
+$('#fechaHist').onchange = cargarHistorial;
+$('#filtroCamp').onchange = cargarEstado;
+$('#escanearCamp').onclick = async () => {
+  $('#escanearCamp').disabled = true;
+  try { const r = await api('/api/campanas/escanear', {method: 'POST'}); mensaje(r.error ? 'Error: ' + r.error : `${r.revisadas} campañas revisadas, ${r.activas} activas, ${r.cambios} cambio(s).`, r.error ? 'error' : 'aviso'); await cargarEstado(); }
+  catch (e) { mensaje(e.message, 'error'); }
+  $('#escanearCamp').disabled = false;
+};
+async function cargarCampanas() { await Promise.all([cargarEstado(), cargarHistorial()]); }
+async function cargarEstado() {
+  try {
+    const r = await api('/api/campanas/estado');
+    const f = $('#filtroCamp').value;
+    const lista = r.campanas.filter(c => f === '' || (f === '1') === !!c.activa);
+    const activas = r.campanas.filter(c => c.activa).length;
+    const u = r.ultimoEscaneo;
+    $('#infoEscaneo').textContent = u ? `Última revisión ${u.momento.slice(11, 16)} · se revisa sola cada ${catalogos.escaneo || '5m'}` + (u.error ? ' · último error: ' + u.error : '') : 'Esperando la primera revisión…';
+    $('#kpisCamp').innerHTML = [['Activas ahora', activas], ['Detenidas', r.campanas.length - activas], ['Campañas en Wolkvox', r.campanas.length],
+      ['Última revisión', u ? u.momento.slice(11, 16) : '—']].map(([t, v]) => `<div class="kpi"><b>${v}</b><span>${t}</span></div>`).join('');
+    $('#tablaCamp').innerHTML = lista.length ? lista.map(c => `<tr><td>${estadoPill(c.activa)}</td><td>${esc(c.campanaId)}</td><td>${esc(c.nombre)}</td><td>${tipoTxt(c.tipo)}</td>
+      <td class="num">${c.registros != null ? c.registros.toLocaleString('es-CO') : ''}</td><td>${c.desde ? c.desde.slice(0, 10) === hoy ? c.desde.slice(11, 16) : c.desde.slice(0, 16).replace('T', ' ') : '<span style="color:var(--muted)">antes de la 1.ª revisión</span>'}</td></tr>`).join('')
+      : '<tr><td colspan="6" class="vacio">Sin campañas todavía. Pulsa "Escanear ahora".</td></tr>';
+  } catch (e) { mensaje(e.message, 'error'); }
+}
+async function cargarHistorial() {
+  try {
+    const ev = await api('/api/campanas/historial?fecha=' + $('#fechaHist').value);
+    $('#feed').innerHTML = ev.length ? ev.map(e => htmlEvento({...e, evento: e.tipo})).join('') : '<li><span></span><span class="vacio" style="padding:8px">Sin activaciones ni detenciones en esta fecha.</span><span></span></li>';
+  } catch (e) { mensaje(e.message, 'error'); }
+}
 
 // ── Agenda ──
 $('#fechaAg').onchange = cargarAgenda;

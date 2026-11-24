@@ -1,0 +1,29 @@
+BITÁCORA DIGITAL DE CARGUES WOLKVOX · v1.0
+============================================
+
+CÓMO SE USA
+1. Abra config\application.properties con el Bloc de notas y llene:
+     bitacora.wolkvox.servidor=   (los 4 dígitos de wvXXXX.wolkvox.com)
+     bitacora.wolkvox.token=      (Manager → Configuración → Integraciones → Tokens)
+   Guarde el archivo.
+2. Doble clic en Iniciar-Bitacora.bat.
+   Se abre una ventana negra (no la cierre) y luego el navegador en http://localhost:4444
+3. Deje los CSV a cargar en la carpeta datos\entrada (o la que ponga en la configuración).
+
+NO HAY QUE INSTALAR NADA
+- La base de datos va dentro del programa (H2). Se guarda en %LOCALAPPDATA%\BitacoraDigital\db
+  (fuera de OneDrive, para que la sincronización no la dañe).
+- Java: si el equipo no tiene Java 21, la primera vez el programa descarga un Java portátil
+  (Eclipse Temurin, ~45 MB) dentro de la carpeta "jre". No pide permisos de administrador.
+  Si el equipo no tiene internet, copie una carpeta "jre" de Java 21 junto a este archivo.
+
+QUÉ HACE
+- Cargar listas: primero elige la campaña (leída del servidor Wolkvox), luego los archivos.
+- Campañas en vivo: cada 5 minutos revisa qué campañas están activas o detenidas.
+  Si alguien enciende o apaga una campaña en Wolkvox Manager, aparece en el histórico
+  y la hora pasa sola a la bitácora. Todo se actualiza en pantalla sin recargar.
+- Bitácora: elija una hora de gestión (06:00 ... 21:00) para ver qué listas estuvieron activas,
+  agentes conectados, registros barridos, gestionados y las activaciones de esa hora.
+
+DETENER: cierre la ventana negra.
+REGISTRO DE ERRORES: datos\logs\bitacora.log

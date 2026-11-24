@@ -111,6 +111,7 @@ public class CargueServicio {
             return c.id;
         });
 
+        int[] enviados = {0, 0}; // aceptados, rechazados por Wolkvox (para no perder la cuenta si un lote falla)
         try {
             CsvLeido csv = archivos.leer(s.archivo());
             ResultadoValidacion v = validador.validar(csv);
@@ -119,15 +120,15 @@ public class CargueServicio {
             String rutaRechazados = v.invalidos().isEmpty() ? null
                     : archivos.escribirRechazados(s.archivo(), csv.encabezado(), v.invalidos(), csv.separador());
 
-            int aceptados = 0, rechazadosWvx = 0;
-            int tam = config.cargue().tamanoLote();
+            int tam = Math.min(config.cargue().tamanoLote(), 10_000); // límite de Wolkvox por consumo
             List<Map<String, String>> validos = v.validos();
+            Campana destino = campanas.buscar(campana.id()); // estado más reciente (start/stop) para add_record
             for (int i = 0; i < validos.size(); i += tam) {
-                ResultadoLote r = wolkvox.cargarRegistros(campana, validos.subList(i, Math.min(i + tam, validos.size())));
-                aceptados += r.aceptados();
-                rechazadosWvx += r.rechazados();
+                ResultadoLote r = wolkvox.cargarRegistros(destino, validos.subList(i, Math.min(i + tam, validos.size())));
+                enviados[0] += r.aceptados();
+                enviados[1] += r.rechazados();
             }
-            final int ac = aceptados, rw = rechazadosWvx;
+            final int ac = enviados[0], rw = enviados[1];
             QuarkusTransaction.requiringNew().run(() -> {
                 CargueEntidad c = repo.findById(id);
                 c.registrosArchivo = csv.filas().size();
@@ -137,6 +138,8 @@ public class CargueServicio {
                 c.archivoRechazados = rutaRechazados;
                 c.estado = (v.invalidos().isEmpty() && rw == 0) ? EstadoCargue.CARGADO : EstadoCargue.CARGADO_CON_RECHAZOS;
                 c.finCargue = ahora();
+                // Si la campaña ya estaba encendida, la lista empieza a marcarse desde este momento.
+                if (destino.estaActiva() && ac > 0 && c.inicioCampana == null) c.inicioCampana = c.finCargue;
                 if (!v.invalidos().isEmpty()) {
                     String aviso = v.invalidos().size() + " no válidos";
                     c.observacion = c.observacion == null || c.observacion.isBlank() ? aviso : c.observacion + " · " + aviso;
@@ -149,7 +152,9 @@ public class CargueServicio {
                 CargueEntidad c = repo.findById(id);
                 c.estado = EstadoCargue.FALLIDO;
                 c.finCargue = ahora();
-                c.error = recortar(e.getMessage());
+                c.registrosCargados = enviados[0];
+                c.rechazadosWolkvox = enviados[1];
+                c.error = recortar((enviados[0] > 0 ? "Se alcanzaron a cargar " + enviados[0] + " registros. " : "") + e.getMessage());
             });
         }
         bitacora.sincronizarExcelSinFallar();
