@@ -17,6 +17,17 @@ if (Test-Path $cfg) {
 }
 $url = "http://localhost:$puerto"
 
+# Si el programa llegó partido en pedazos (bitacora-digital.jar.part1, part2...), se une una sola vez.
+$jar = Join-Path $base 'bitacora-digital.jar'
+$partes = Get-ChildItem $base -Filter 'bitacora-digital.jar.part*' | Sort-Object { [int]($_.Name -replace '.*part', '') }
+if (-not (Test-Path $jar) -and $partes) {
+    Write-Host 'Uniendo las partes del programa...'
+    $salidaJar = [IO.File]::Create($jar)
+    foreach ($p in $partes) { $b = [IO.File]::ReadAllBytes($p.FullName); $salidaJar.Write($b, 0, $b.Length) }
+    $salidaJar.Close()
+    $partes | Remove-Item -Force
+}
+
 # ¿Ya está corriendo?
 try {
     Invoke-WebRequest "$url/q/health/ready" -UseBasicParsing -TimeoutSec 2 | Out-Null
@@ -76,5 +87,5 @@ Write-Host "Bitácora Digital iniciando en $url"
 Write-Host "Base de datos: $($env:BITACORA_DB)"
 Write-Host 'Para detener el programa, cierre esta ventana.'
 Write-Host ''
-& $java -Xmx768m -Dfile.encoding=UTF-8 -jar (Join-Path $base 'bitacora-digital.jar')
+& $java -Xmx768m -Dfile.encoding=UTF-8 -jar $jar
 exit $LASTEXITCODE
