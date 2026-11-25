@@ -1,5 +1,6 @@
 package com.bitacora.aplicacion;
 
+import com.bitacora.dominio.modelo.PlantillaWolkvox;
 import com.bitacora.dominio.modelo.CsvLeido;
 import com.bitacora.dominio.modelo.RegistroInvalido;
 import com.bitacora.dominio.modelo.ResultadoValidacion;
@@ -43,6 +44,11 @@ public class ValidadorCsv {
                 .filter(c -> reglas.patronTelefono().matcher(normalizar(c)).matches()).toList();
 
         List<String> erroresEstructura = new ArrayList<>();
+        int columnas = PlantillaWolkvox.columnas(encabezado);
+        if (PlantillaWolkvox.detectar(encabezado).isEmpty()) {
+            erroresEstructura.add("El archivo tiene " + columnas + " columnas: la plantilla de Wolkvox predictiva tiene "
+                    + PlantillaWolkvox.COLUMNAS_PREDICTIVA + " y la preview " + PlantillaWolkvox.COLUMNAS_PREVIEW);
+        }
         if (colId == null) erroresEstructura.add("Falta la columna de identificación " + reglas.columnasId());
         if (colNombre == null) erroresEstructura.add("Falta la columna de nombre " + reglas.columnasNombre());
         if (colsTel.isEmpty()) erroresEstructura.add("No hay ninguna columna de teléfono (Tel1..Tel10)");

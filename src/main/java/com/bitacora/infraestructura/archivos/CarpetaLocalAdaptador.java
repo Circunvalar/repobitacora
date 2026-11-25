@@ -156,12 +156,14 @@ public class CarpetaLocalAdaptador implements ArchivosPuerto {
         }
     }
 
-    /** Wolkvox pide comas, pero Excel en español guarda con punto y coma: se acepta cualquiera. */
+    /** Se acepta coma, punto y coma (Excel en español) o tabulador (plantilla copiada de Wolkvox). */
     static char detectarSeparador(String texto) {
         int fin = texto.indexOf('\n');
         String primera = fin < 0 ? texto : texto.substring(0, fin);
         long comas = primera.chars().filter(c -> c == ',').count();
         long pyc = primera.chars().filter(c -> c == ';').count();
+        long tabs = primera.chars().filter(c -> c == '\t').count();
+        if (tabs > comas && tabs > pyc) return '\t';
         return pyc > comas ? ';' : ',';
     }
 }

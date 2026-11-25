@@ -16,6 +16,13 @@ class ValidadorCsvTest {
             Set.of("id", "identificacion"), Set.of("nombre"),
             Pattern.compile("^(tel|telefono)\\d{1,2}$|^(otrotel|telextra)$"), 7, 15, 100, Map.of("opt7", 200)));
 
+    /** Completa el encabezado hasta las 36 columnas de la plantilla predictiva. */
+    private static List<String> plantilla(String... cols) {
+        List<String> r = new java.util.ArrayList<>(List.of(cols));
+        for (int i = 1; r.size() < 36; i++) r.add("extra" + i);
+        return r;
+    }
+
     private static Map<String, String> fila(String id, String nombre, String tel1, String tel2) {
         Map<String, String> m = new LinkedHashMap<>();
         m.put("ID", id); m.put("Nombre", nombre); m.put("Tel1", tel1); m.put("Tel2", tel2);
@@ -24,7 +31,7 @@ class ValidadorCsvTest {
 
     @Test
     void separaValidosDeNoValidos() {
-        CsvLeido csv = new CsvLeido(List.of("ID", "Nombre", "Tel1", "Tel2"), List.of(
+        CsvLeido csv = new CsvLeido(plantilla("ID", "Nombre", "Tel1", "Tel2"), List.of(
                 fila("1", "Ana", "300 123-4567", ""),
                 fila("2", "Luis", "abc", "123"),
                 fila("", "Sin id", "3001234567", ""),
@@ -43,7 +50,7 @@ class ValidadorCsvTest {
 
     @Test
     void reconoceEncabezadosConTildesYMayusculas() {
-        CsvLeido csv = new CsvLeido(List.of("Identificación", "NOMBRE", "Teléfono 1"),
+        CsvLeido csv = new CsvLeido(plantilla("Identificación", "NOMBRE", "Teléfono 1"),
                 List.of(new LinkedHashMap<>(Map.of("Identificación", "9", "NOMBRE", "Eva", "Teléfono 1", "6041234567"))), ';');
         assertEquals(1, validador.validar(csv).validos().size());
     }
@@ -53,6 +60,7 @@ class ValidadorCsvTest {
         CsvLeido csv = new CsvLeido(List.of("Nombre", "Ciudad"), List.of(), ',');
         ResultadoValidacion r = validador.validar(csv);
         assertFalse(r.estructuraValida());
-        assertEquals(2, r.erroresEstructura().size());
+        assertEquals(3, r.erroresEstructura().size());
+        assertTrue(r.erroresEstructura().get(0).contains("2 columnas"));
     }
 }
