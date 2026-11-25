@@ -87,5 +87,5 @@ Write-Host "Bitácora Digital iniciando en $url"
 Write-Host "Base de datos: $($env:BITACORA_DB)"
 Write-Host 'Para detener el programa, cierre esta ventana.'
 Write-Host ''
-& $java -Xmx768m -Dfile.encoding=UTF-8 -jar $jar
+& $java -Xmx768m -Dfile.encoding=UTF-8 -Djava.net.useSystemProxies=true -jar $jar
 exit $LASTEXITCODE
