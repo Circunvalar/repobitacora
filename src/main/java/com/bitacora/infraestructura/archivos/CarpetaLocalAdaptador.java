@@ -1,5 +1,6 @@
 package com.bitacora.infraestructura.archivos;
 
+import com.bitacora.aplicacion.AjustesServicio;
 import com.bitacora.aplicacion.BitacoraConfig;
 import com.bitacora.dominio.modelo.CsvLeido;
 import com.bitacora.dominio.modelo.RegistroInvalido;
@@ -9,6 +10,7 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVRecord;
+import org.apache.poi.ss.usermodel.*;
 
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -29,12 +31,15 @@ import java.util.stream.Stream;
 public class CarpetaLocalAdaptador implements ArchivosPuerto {
 
     private final BitacoraConfig config;
+    private final AjustesServicio ajustes;
 
-    public CarpetaLocalAdaptador(BitacoraConfig config) {
+    public CarpetaLocalAdaptador(BitacoraConfig config, AjustesServicio ajustes) {
         this.config = config;
+        this.ajustes = ajustes;
     }
 
-    private Path entrada() { return crear(Path.of(config.carpetas().entrada())); }
+    /** Carpeta de bases: la elegida en la app, o la de la configuración. */
+    private Path entrada() { return crear(Path.of(ajustes.carpetaBases())); }
     private Path procesados() { return crear(Path.of(config.carpetas().procesados())); }
     private Path rechazados() { return crear(Path.of(config.carpetas().rechazados())); }
 
@@ -56,7 +61,7 @@ public class CarpetaLocalAdaptador implements ArchivosPuerto {
     public List<InfoArchivo> listarCsv() {
         try (Stream<Path> s = Files.list(entrada())) {
             return s.filter(Files::isRegularFile)
-                    .filter(p -> p.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".csv"))
+                    .filter(p -> AjustesServicio.esBase(p.getFileName().toString()))
                     .map(p -> {
                         try {
                             return new InfoArchivo(p.getFileName().toString(), Files.size(p),
@@ -72,6 +77,7 @@ public class CarpetaLocalAdaptador implements ArchivosPuerto {
 
     @Override
     public CsvLeido leer(String nombre) {
+        if (esExcel(nombre)) return leerExcel(resolver(nombre));
         String texto = leerTexto(resolver(nombre));
         char sep = detectarSeparador(texto);
         CSVFormat formato = CSVFormat.DEFAULT.builder().setDelimiter(sep).setHeader().setSkipHeaderRecord(true)
@@ -92,6 +98,7 @@ public class CarpetaLocalAdaptador implements ArchivosPuerto {
 
     @Override
     public int contarFilas(String nombre) {
+        if (esExcel(nombre)) return leerExcel(resolver(nombre)).filas().size();
         try (Stream<String> lineas = Files.lines(resolver(nombre), StandardCharsets.ISO_8859_1)) {
             return (int) Math.max(0, lineas.filter(l -> !l.isBlank()).count() - 1);
         } catch (IOException e) {
@@ -115,7 +122,7 @@ public class CarpetaLocalAdaptador implements ArchivosPuerto {
     @Override
     public String escribirRechazados(String nombre, List<String> encabezado, List<RegistroInvalido> invalidos, char separador) {
         String marca = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-        Path destino = rechazados().resolve(nombre.replaceAll("(?i)\\.csv$", "") + "_RECHAZADOS_" + marca + ".csv");
+        Path destino = rechazados().resolve(nombre.replaceAll("(?i)\\.(csv|txt|xlsx)$", "") + "_RECHAZADOS_" + marca + ".csv");
         List<String> cols = new ArrayList<>(List.of("LINEA", "MOTIVO"));
         cols.addAll(encabezado);
         CSVFormat f = CSVFormat.DEFAULT.builder().setDelimiter(separador).setHeader(cols.toArray(String[]::new)).get();
@@ -135,6 +142,39 @@ public class CarpetaLocalAdaptador implements ArchivosPuerto {
     public void moverAProcesados(String nombre) {
         try {
             Files.move(resolver(nombre), procesados().resolve(nombre), StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private static boolean esExcel(String nombre) {
+        return nombre.toLowerCase(Locale.ROOT).endsWith(".xlsx");
+    }
+
+    /** Primera hoja del Excel: la fila 1 es el encabezado; todas las celdas se leen como texto. */
+    static CsvLeido leerExcel(Path ruta) {
+        DataFormatter fmt = new DataFormatter(Locale.ROOT);
+        try (InputStream in = Files.newInputStream(ruta); Workbook wb = WorkbookFactory.create(in)) {
+            Sheet hoja = wb.getSheetAt(0);
+            Row cab = hoja.getRow(hoja.getFirstRowNum());
+            if (cab == null) return new CsvLeido(List.of(), List.of(), ';');
+            List<String> encabezado = new ArrayList<>();
+            for (int i = 0; i < cab.getLastCellNum(); i++) encabezado.add(fmt.formatCellValue(cab.getCell(i)).replace("\uFEFF", "").trim());
+            while (!encabezado.isEmpty() && encabezado.get(encabezado.size() - 1).isEmpty()) encabezado.remove(encabezado.size() - 1);
+            List<Map<String, String>> filas = new ArrayList<>();
+            for (int r = cab.getRowNum() + 1; r <= hoja.getLastRowNum(); r++) {
+                Row row = hoja.getRow(r);
+                if (row == null) continue;
+                Map<String, String> fila = new LinkedHashMap<>();
+                boolean vacia = true;
+                for (int i = 0; i < encabezado.size(); i++) {
+                    String v = fmt.formatCellValue(row.getCell(i)).trim();
+                    if (!v.isEmpty()) vacia = false;
+                    fila.put(encabezado.get(i), v);
+                }
+                if (!vacia) filas.add(fila);
+            }
+            return new CsvLeido(encabezado, filas, ';');
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

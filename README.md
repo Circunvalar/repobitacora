@@ -4,12 +4,13 @@ Aplicación web en Quarkus que toma los CSV de una carpeta, los valida con la pl
 los carga a cualquier campaña (predictiva o preview), deja cada cargue en la bitácora y en un Excel,
 registra la hora exacta de activación/detención de la campaña y guarda métricas por hora.
 
-Es **multicampaña**: cada campaña se guarda con su número, su servidor `wvXXXX` y su token (no hay
-"campañas principales"). Al guardarla se prueba el token y se comprueba que la campaña exista en ese servidor.
-Cada cargue pide la **hora de encendido**: si la campaña está apagada, se programa su encendido para ese día
-(solo encendido; lo que no se ejecutó queda vencido al día siguiente). El tipo de lista sale de la plantilla de
-Wolkvox: 36 columnas = Predictiva, 35 = Preview, y debe coincidir con la campaña. Cada lista lleva su observación,
-que va a la columna OBSERVACION de la bitácora. El Excel respeta el encabezado:
+Se organiza en **operaciones**: cada operación tiene su nombre, su servidor `wvXXXX` y su token, y dentro de ella se
+agregan sus campañas con **nombre e ID**. El token se prueba al guardar la operación y el ID se comprueba en ese servidor.
+La carpeta de bases se elige desde la app (`/api/ajustes`) y se leen .csv, .txt y .xlsx. Cada cargue se hace desde una
+ventana que pide la campaña, la **hora de encendido** y los datos de la bitácora; si la campaña está apagada se programa su
+encendido para ese día (solo encendido). El tipo de lista sale de la plantilla: 36 columnas = Predictiva, 35 = Preview.
+La pestaña "Campañas activas" muestra lo que está encendido con sus listas del día y la observación de cada una, que va a la
+columna OBSERVACION. El Excel respeta el encabezado:
 FECHA · HORA INICIO · HORA FINAL · ID_CAMPAÑA · NOMBRE DE LISTA · CAMPAÑA · ESTRATEGIA · JEFE · REGISTROS CARGADOS ·
 TOTAL GESTIONADO · ESTRATEGIA MARCACION · % GESTIÓN · DESCARGA INFORME · NOMBRE ESTRATEGIA · OBSERVACION.
 No hay modo simulado: todo va contra Wolkvox. Los errores de la API se traducen a mensajes con qué hacer.
@@ -23,7 +24,8 @@ El paquete `BitacoraDigital.zip` trae todo: `bitacora-digital.jar`, `Iniciar-Bit
 `config/application.properties` y `LEEME.txt` (los archivos de `distribucion/` más el jar).
 
 1. Doble clic en `Iniciar-Bitacora.bat` → abre http://localhost:4444.
-2. "Campañas": guardar cada campaña con su número, servidor y token.
+2. "Operaciones": crear cada operación (nombre, servidor, token) y agregarle sus campañas (nombre e ID).
+3. "Cargar bases": elegir la carpeta, pulsar "Cargar…" en una base y llenar la ventana.
 
 - Base de datos **H2 embebida** (archivo), sin instalar motor. El lanzador la deja en
   `%LOCALAPPDATA%\BitacoraDigital\db` para que OneDrive no la sincronice. Migraciones con Flyway.

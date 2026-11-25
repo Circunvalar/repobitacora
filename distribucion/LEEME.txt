@@ -1,23 +1,20 @@
-BITÁCORA DIGITAL DE CARGUES WOLKVOX · v3.0
+BITÁCORA DIGITAL DE CARGUES WOLKVOX · v4.0
 ============================================
 
 CÓMO SE USA
 1. Doble clic en Iniciar-Bitacora.bat.
    Se abre una ventana negra (no la cierre) y luego el navegador en http://localhost:4444
-2. Pestaña "Campañas": agregue cada campaña con
-     Número de campaña  (el ID que aparece en Wolkvox Manager)
-     Servidor           (los 4 dígitos de wvXXXX.wolkvox.com)
-     Token              (Manager → Configuración → Integraciones → Tokens)
-   Al pulsar "Validar y guardar" se prueba el token y se comprueba que la campaña exista.
-   Queda guardada para los próximos cargues.
-3. Deje los archivos a cargar en la carpeta datos\entrada. Deben tener el encabezado de la
-   plantilla de Wolkvox: la predictiva trae 36 columnas y la preview 35. Puede ir separado
-   por tabulador, coma o punto y coma.
-4. Pestaña "Cargar listas": escanee la carpeta y en cada archivo elija la campaña y la HORA DE
-   ENCENDIDO (obligatoria). Pulse "Cargar seleccionados".
+2. Pestaña "Operaciones": cree cada operación con su nombre, su servidor (los 4 dígitos de
+   wvXXXX.wolkvox.com) y su token (Manager → Configuración → Integraciones → Tokens).
+   Dentro de cada operación agregue sus campañas con NOMBRE e ID DE CAMPAÑA.
+3. Pestaña "Cargar bases": pulse "Cambiar carpeta…" y elija la carpeta donde están las bases
+   (.csv, .txt o .xlsx). La predictiva trae 36 columnas y la preview 35.
+4. En la base que va a cargar pulse "Cargar…". En la ventana elija la operación, la campaña,
+   la HORA DE ENCENDIDO (obligatoria) y los datos de la bitácora, y pulse "Cargar a Wolkvox".
    Si la campaña está apagada, el programa la prende sola hoy a esa hora.
-5. Pestaña "Campañas": vea los encendidos programados de hoy (cambiar hora o cancelar),
-   programe otros a mano y escriba la observación de cada lista; va a la bitácora y al Excel.
+5. Pestaña "Campañas activas": ve las campañas encendidas, sus listas de hoy y escribe la
+   observación de cada lista (va a la bitácora y al Excel). Ahí también están los encendidos
+   programados de hoy (cambiar hora, cancelar o programar otro).
 
 NO HAY QUE INSTALAR NADA
 - La base de datos va dentro del programa (H2). Se guarda en %LOCALAPPDATA%\BitacoraDigital\db

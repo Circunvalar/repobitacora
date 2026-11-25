@@ -12,6 +12,7 @@ import org.jboss.logging.Logger;
 
 import java.io.IOException;
 import java.net.ConnectException;
+import java.net.ProxySelector;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.UnknownHostException;
@@ -59,7 +60,14 @@ public class WolkvoxHttpAdaptador implements WolkvoxPuerto {
 
     private final BitacoraConfig config;
     private final ObjectMapper json;
-    private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(15)).build();
+    static {
+        // Usa el proxy configurado en Windows (redes corporativas). Debe ir antes de crear el cliente.
+        if (System.getProperty("java.net.useSystemProxies") == null) System.setProperty("java.net.useSystemProxies", "true");
+    }
+
+    private final HttpClient http = HttpClient.newBuilder()
+            .proxy(ProxySelector.getDefault())
+            .connectTimeout(Duration.ofSeconds(15)).build();
     /** Wolkvox permite 2 solicitudes simultáneas por token. */
     private final Map<String, Semaphore> cupos = new ConcurrentHashMap<>();
     private final Map<String, String> columnas = new HashMap<>();
@@ -343,11 +351,20 @@ public class WolkvoxHttpAdaptador implements WolkvoxPuerto {
                     "El servidor " + c + " tardó más de 60 segundos.", "Intente de nuevo en unos minutos.", 0, true, e);
         } catch (ConnectException e) {
             throw new WolkvoxException(Tipo.RED, "Sin conexión con Wolkvox",
-                    "No se pudo conectar con " + c + ".", "Revise la conexión a internet y el número de servidor.", 0, true, e);
+                    "No se pudo conectar con " + c + " (" + causa(e) + ").",
+                    "Revise la conexión a internet, el número de servidor y si la red usa proxy o firewall que bloquee *.wolkvox.com.", 0, true, e);
         } catch (IOException e) {
             throw new WolkvoxException(Tipo.RED, "Error de comunicación con Wolkvox",
-                    e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName(), "Intente de nuevo.", 0, true, e);
+                    causa(e), "Intente de nuevo.", 0, true, e);
         }
+    }
+
+    /** Mensaje técnico de la excepción más profunda, para diagnosticar fallos de red. */
+    static String causa(Throwable e) {
+        Throwable t = e;
+        while (t.getCause() != null && t.getCause() != t) t = t.getCause();
+        String m = t.getMessage();
+        return t.getClass().getSimpleName() + (m != null && !m.isBlank() ? ": " + m : "");
     }
 
     /** El código puede venir en el estado HTTP o en el campo "code" del cuerpo (a veces como texto). */
