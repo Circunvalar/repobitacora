@@ -87,8 +87,8 @@ public class BitacoraServicio {
         // Si la campaña sigue activa, HORA FINAL queda vacía hasta que se detenga.
         String fin = c.finCampana != null ? c.finCampana.toLocalTime().format(HORA)
                 : c.inicioCampana == null && c.horaFinPlan != null ? c.horaFinPlan.format(HORA) : null;
-        String plan = (c.horaInicioPlan != null ? c.horaInicioPlan.format(HORA) : "?") + " - "
-                + (c.horaFinPlan != null ? c.horaFinPlan.format(HORA) : "?");
+        String plan = c.horaInicioPlan == null ? null : "enciende " + c.horaInicioPlan.format(HORA)
+                + (c.horaFinPlan != null ? " - " + c.horaFinPlan.format(HORA) : "");
         Integer pct = c.porcentajeGestion();
         return new FilaBitacora(c.fecha.format(FECHA), inicio, fin, c.campanaId, c.nombreLista, c.campanaNombre,
                 c.estrategia.name(), c.remarcacion, c.jefe, c.registrosCargados, c.totalGestionado,

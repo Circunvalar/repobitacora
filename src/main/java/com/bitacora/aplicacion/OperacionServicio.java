@@ -15,7 +15,8 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Campañas principales (cada una con su servidor de Wolkvox y su token) y los números de campaña
+ * Conexiones a Wolkvox (servidor + token). En la pantalla cada campaña guardada es una conexión con una sola campaña
+ * (ver "Campañas con su propio servidor y token"); los métodos de "campaña principal" quedan para uso interno y los números de campaña
  * que se registran a mano dentro de cada una para futuros cargues.
  */
 @ApplicationScoped
@@ -177,7 +178,7 @@ public class OperacionServicio {
         Campana c = wolkvox.campana(o.conexion(), id).orElseThrow(() -> ErrorNegocio.noEncontrado(
                 "La campaña " + id + " no existe en wv" + o.servidor,
                 "El servidor wv" + o.servidor + " (" + o.nombre + ") no tiene ninguna campaña con el número " + id + ".",
-                "Revise el número en Wolkvox Manager o si pertenece a otra campaña principal."));
+                "Revise el número en Wolkvox Manager o si la campaña está en otro servidor."));
         LocalDateTime ahora = ahora();
         return QuarkusTransaction.requiringNew().call(() -> {
             CampanaEntidad e = ya.isPresent() ? campanas.findById(ya.get().id) : new CampanaEntidad();
@@ -291,15 +292,15 @@ public class OperacionServicio {
 
     public OperacionEntidad entidad(long id) {
         OperacionEntidad o = operaciones.findById(id);
-        if (o == null) throw ErrorNegocio.noEncontrado("Campaña principal no encontrada", "No existe la campaña principal " + id + ".",
+        if (o == null) throw ErrorNegocio.noEncontrado("Campaña no encontrada", "La campaña guardada " + id + " ya no existe.",
                 "Recargue la página.");
         return o;
     }
 
     public CampanaEntidad campanaRegistrada(long operacionId, String campanaId) {
         return campanas.buscar(operacionId, campanaId).orElseThrow(() -> ErrorNegocio.noEncontrado(
-                "Campaña no registrada", "La campaña " + campanaId + " no está registrada en esta campaña principal.",
-                "Agréguela primero escribiendo su número."));
+                "Campaña no registrada", "La campaña " + campanaId + " no está guardada.",
+                "Agréguela en la pestaña Campañas."));
     }
 
     private Vista vista(OperacionEntidad o) {

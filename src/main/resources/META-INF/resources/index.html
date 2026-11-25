@@ -128,9 +128,9 @@ button.btn.chico{padding:3px 9px;font-size:12px}
   <h1>Bitácora Digital de Cargues</h1>
   <nav role="tablist">
     <button role="tab" data-v="cargar" aria-selected="true">Cargar listas</button>
-    <button role="tab" data-v="bitacora" aria-selected="false">Bitácora</button>
+    <button role="tab" data-v="campanas" aria-selected="false">Campañas</button>
     <button role="tab" data-v="vivo" aria-selected="false">Campañas en vivo</button>
-    <button role="tab" data-v="config" aria-selected="false">Campañas y servidores</button>
+    <button role="tab" data-v="bitacora" aria-selected="false">Bitácora</button>
     <button role="tab" data-v="agenda" aria-selected="false">Agenda del día</button>
     <button role="tab" data-v="metricas" aria-selected="false">Métricas por hora</button>
   </nav>
@@ -138,25 +138,14 @@ button.btn.chico{padding:3px 9px;font-size:12px}
 </header>
 
 <main>
-  <div class="tarjeta" id="sinOps" hidden>
-    <div class="vacio-grande"><b>Aún no hay campañas principales</b>Registre la primera con su servidor de Wolkvox y su token para poder cargar listas.
-      <div style="margin-top:14px"><button class="btn primario" id="irConfig">Agregar campaña principal</button></div></div>
+  <div class="tarjeta" id="sinCamps" hidden>
+    <div class="vacio-grande"><b>Aún no hay campañas guardadas</b>Agregue la primera con su número, su servidor de Wolkvox y su token para poder cargar listas.
+      <div style="margin-top:14px"><button class="btn primario" id="irCampanas">Agregar campaña</button></div></div>
   </div>
 
   <!-- CARGAR -->
   <section id="v-cargar">
     <div class="tarjeta">
-      <p class="paso">1 · Campaña principal y campaña destino</p>
-      <div class="form">
-        <label>Campaña principal (servidor)<select id="opCargue" style="min-width:240px"></select></label>
-        <label>Número de campaña en Wolkvox<input id="campCargue" list="campsCargue" placeholder="Escriba o elija el número" size="24" inputmode="numeric"></label>
-        <datalist id="campsCargue"></datalist>
-        <button class="btn" id="usarCamp">Usar esta campaña</button>
-      </div>
-      <div id="infoCampCargue"></div>
-    </div>
-    <div class="tarjeta" style="margin-top:12px">
-      <p class="paso">2 · Archivos a cargar</p>
       <div class="barra">
         <button class="btn" id="escanear">Escanear carpeta</button>
         <span class="mono" id="carpeta"></span>
@@ -164,11 +153,64 @@ button.btn.chico{padding:3px 9px;font-size:12px}
         <label>Fecha <input type="date" id="fechaCargue"></label>
         <button class="btn primario" id="cargarSel" disabled>Cargar seleccionados</button>
       </div>
+      <p class="mono" style="margin:10px 0 0">Cada lista necesita su campaña y la hora en que se debe prender la campaña para gestionarla. El tipo (Predictiva 36 columnas, Preview 35) se lee del encabezado del archivo.</p>
       <div class="caja" style="margin-top:12px">
         <table>
-          <thead><tr><th></th><th>Archivo</th><th>Filas</th><th>Revisión</th><th>Campaña destino</th><th>Estrategia</th><th>Jefe</th><th>Nombre estrategia</th><th>Inicio</th><th>Fin</th></tr></thead>
-          <tbody id="archivos"><tr><td colspan="10" class="vacio">Elija la campaña y pulse "Escanear carpeta" para ver los CSV pendientes.</td></tr></tbody>
+          <thead><tr><th></th><th>Archivo</th><th>Filas</th><th>Revisión</th><th>Campaña destino</th><th>Hora de encendido</th><th>Estrategia</th><th>Jefe</th><th>Nombre estrategia</th><th>Observación</th></tr></thead>
+          <tbody id="archivos"><tr><td colspan="10" class="vacio">Pulse "Escanear carpeta" para ver los CSV pendientes.</td></tr></tbody>
         </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- CAMPAÑAS -->
+  <section id="v-campanas" hidden>
+    <div class="tarjeta">
+      <p class="paso">Agregar campaña</p>
+      <div class="form">
+        <label>Número de campaña<input id="nCampana" placeholder="Ej. 30849" inputmode="numeric" size="14"></label>
+        <label>Servidor<span class="prefijo"><span>wv</span><input id="nServidor" placeholder="0003" inputmode="numeric"></span></label>
+        <label>Token de Wolkvox Manager<input id="nToken" type="password" placeholder="Pegue el token" size="38" autocomplete="off"></label>
+        <button class="btn" id="verToken" type="button" title="Mostrar u ocultar el token">Mostrar</button>
+        <button class="btn primario" id="crearCamp">Validar y guardar</button>
+      </div>
+      <p class="mono" style="margin:10px 0 0">El token se crea en Wolkvox Manager → Configuración → Integraciones → Tokens. Antes de guardar se prueba el token y se comprueba que la campaña exista en ese servidor.</p>
+      <div id="resNueva"></div>
+    </div>
+
+    <div class="tarjeta" style="margin-top:12px">
+      <div class="barra"><p class="paso" style="margin:0">Encendidos programados de hoy</p><span class="sep"></span>
+        <label>Campaña <select id="progCamp" style="min-width:220px"></select></label>
+        <label>Hora <input type="time" id="progHora"></label>
+        <button class="btn" id="programar">Programar encendido</button>
+      </div>
+      <p class="mono" style="margin:10px 0 0">Solo encendido y solo para hoy: cada día se sube una base nueva. Si la hora ya pasó, la campaña se prende en menos de un minuto.</p>
+      <div class="caja" style="margin-top:12px">
+        <table><thead><tr><th>Hora</th><th>Campaña</th><th>Lista</th><th>Estado</th><th></th></tr></thead><tbody id="programaciones"></tbody></table>
+      </div>
+    </div>
+
+    <div class="barra" style="margin-top:16px">
+      <b>Campañas guardadas y sus listas</b><span class="sep"></span>
+      <label>Listas del <input type="date" id="fechaCamps"></label>
+    </div>
+    <div id="listaCamps"></div>
+  </section>
+
+  <!-- CAMPAÑAS EN VIVO -->
+  <section id="v-vivo" hidden>
+    <div class="barra">
+      <span class="mono" id="infoEscaneo"></span>
+      <span class="sep"></span>
+      <label>Ver <select id="filtroCamp"><option value="">Todas</option><option value="1">Activas</option><option value="0">Detenidas</option></select></label>
+      <button class="btn" id="escanearCamp">Escanear ahora</button>
+    </div>
+    <div class="kpis" id="kpisCamp" style="margin-top:12px"></div>
+    <div class="dos" style="margin-top:12px">
+      <div class="caja" style="align-self:start"><table><thead><tr><th>Estado</th><th>ID</th><th>Campaña</th><th>Tipo</th><th>Servidor</th><th>Registros</th><th>Desde</th><th>Encendido hoy</th><th></th></tr></thead><tbody id="estadoCamps"></tbody></table></div>
+      <div class="caja" style="align-self:start">
+        <div class="barra" style="padding:10px 12px;border-bottom:1px solid var(--line)"><b>Histórico de activación</b><span class="sep"></span><input type="date" id="fechaHist" aria-label="Fecha del histórico"></div>
+        <ul class="feed" id="feed"></ul>
       </div>
     </div>
   </section>
@@ -188,52 +230,17 @@ button.btn.chico{padding:3px 9px;font-size:12px}
     </div>
     <div class="caja" style="margin-top:12px">
       <table>
-        <thead><tr><th>Hora inicio</th><th>Hora final</th><th>Campaña principal</th><th>ID</th><th>Nombre de lista</th><th>Campaña</th><th>Estrategia</th><th>Remarc.</th><th>Jefe</th><th>Cargados</th><th>No válidos</th><th>Gestionado</th><th>Marcación</th><th>% Gestión</th><th>Informe</th><th>Nombre estrategia</th><th>Estado</th><th>Campaña</th></tr></thead>
+        <thead><tr><th>Hora inicio</th><th>Hora final</th><th>ID campaña</th><th>Nombre de lista</th><th>Campaña</th><th>Estrategia</th><th>Jefe</th><th>Cargados</th><th>No válidos</th><th>Gestionado</th><th>Marcación</th><th>% Gestión</th><th>Informe</th><th>Nombre estrategia</th><th>Observación</th><th>Estado</th><th>Campaña</th></tr></thead>
         <tbody id="bitacora"></tbody>
       </table>
     </div>
-  </section>
-
-  <!-- CAMPAÑAS EN VIVO -->
-  <section id="v-vivo" hidden>
-    <div class="barra">
-      <span class="mono" id="infoEscaneo"></span>
-      <span class="sep"></span>
-      <label>Ver <select id="filtroCamp"><option value="">Todas</option><option value="1">Activas</option><option value="0">Detenidas</option></select></label>
-      <button class="btn" id="escanearCamp">Escanear ahora</button>
-    </div>
-    <div class="kpis" id="kpisCamp" style="margin-top:12px"></div>
-    <div class="dos" style="margin-top:12px">
-      <div id="estadoOps"></div>
-      <div class="caja" style="align-self:start">
-        <div class="barra" style="padding:10px 12px;border-bottom:1px solid var(--line)"><b>Histórico de activación</b><span class="sep"></span><input type="date" id="fechaHist" aria-label="Fecha del histórico"></div>
-        <ul class="feed" id="feed"></ul>
-      </div>
-    </div>
-  </section>
-
-  <!-- CONFIGURACIÓN -->
-  <section id="v-config" hidden>
-    <div class="tarjeta">
-      <p class="paso">Nueva campaña principal</p>
-      <div class="form" id="formNueva">
-        <label>Nombre<input id="nNombre" placeholder="Ej. REINTEGRA" size="22"></label>
-        <label>Servidor<span class="prefijo"><span>wv</span><input id="nServidor" placeholder="0003" inputmode="numeric"></span></label>
-        <label>Token de Wolkvox Manager<input id="nToken" type="password" placeholder="Pegue el token" size="38" autocomplete="off"></label>
-        <button class="btn" id="verToken" type="button" title="Mostrar u ocultar el token">Mostrar</button>
-        <button class="btn primario" id="crearOp">Validar y guardar</button>
-      </div>
-      <p class="mono" style="margin:10px 0 0">El token se crea en Wolkvox Manager → Configuración → Integraciones → Tokens. Antes de guardar se prueba contra el servidor.</p>
-      <div id="resNueva"></div>
-    </div>
-    <div id="listaOps"></div>
   </section>
 
   <!-- AGENDA -->
   <section id="v-agenda" hidden>
     <div class="barra">
       <label>Fecha <input type="date" id="fechaAg"></label>
-      <div class="leyenda"><span><i style="background:var(--plan)"></i>Horario planeado</span><span><i style="background:var(--real)"></i>Activa en Wolkvox</span><span><i style="background:var(--no)"></i>Ahora</span></div>
+      <div class="leyenda"><span><i style="background:var(--plan)"></i>Encendido programado</span><span><i style="background:var(--real)"></i>Activa en Wolkvox</span><span><i style="background:var(--no)"></i>Ahora</span></div>
     </div>
     <div class="caja" style="margin-top:12px"><div class="gantt" id="gantt"></div></div>
   </section>
@@ -249,7 +256,7 @@ button.btn.chico{padding:3px 9px;font-size:12px}
     <div class="kpis" id="kpis" style="margin-top:12px"></div>
     <div class="caja grafico" style="margin-top:12px;padding:12px" id="grafico"></div>
     <div class="caja" style="margin-top:12px">
-      <table><thead><tr><th>Hora</th><th>Campaña principal</th><th>Campaña</th><th>Agentes conectados</th><th>Registros barridos</th><th>Gestionados</th></tr></thead><tbody id="metricas"></tbody></table>
+      <table><thead><tr><th>Hora</th><th>Servidor</th><th>Campaña</th><th>Agentes conectados</th><th>Registros barridos</th><th>Gestionados</th></tr></thead><tbody id="metricas"></tbody></table>
     </div>
   </section>
 </main>
@@ -257,8 +264,8 @@ button.btn.chico{padding:3px 9px;font-size:12px}
 <script>
 const $ = s => document.querySelector(s);
 const hoy = new Date(Date.now() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
-['#fechaCargue','#fechaBit','#fechaAg','#fechaMet','#fechaHist'].forEach(id => $(id).value = hoy);
-let ops = [], catalogos = {}, archivos = [];
+['#fechaCargue','#fechaBit','#fechaAg','#fechaMet','#fechaHist','#fechaCamps'].forEach(id => $(id).value = hoy);
+let camps = [], catalogos = {}, archivos = [];
 const H0 = 6, H1 = 22; // franja visible 6:00 a 22:00
 
 // ── Utilidades y errores visibles ──
@@ -293,74 +300,44 @@ const ok = (titulo, detalle) => aviso({tipo: 'ok', titulo, detalle});
 const cajaError = (e) => `<div class="caja-error"><span>⚠</span><div><b>${esc(e.titulo || 'Error')}</b>${esc(e.message || e.error || '')}${e.sugerencia ? `<br><b style="display:inline">Qué hacer:</b> ${esc(e.sugerencia)}` : ''}</div></div>`;
 const tipoTxt = t => t === 'PREVIEW' ? 'Preview' : 'Predictiva';
 const estadoPill = a => a == null ? '<span class="pill p-info">sin dato</span>' : a ? '<span class="pill p-ok">activa</span>' : '<span class="pill p-no">detenida</span>';
-const origenTxt = o => ({APP: 'desde la app', HORARIO: 'por horario', ESCANEO: 'detectado en Wolkvox'})[o] || o;
-const opDe = id => ops.find(o => o.id === id);
-const nomCamp = (opId, id) => ((opDe(opId)?.campanas || []).find(c => c.campanaId === id) || {}).nombre || '';
+const origenTxt = o => ({APP: 'desde la app', HORARIO: 'por horario', PROGRAMADO: 'encendido programado', ESCANEO: 'detectado en Wolkvox'})[o] || o;
+const campDe = id => camps.find(c => c.id === id);
+const nomCamp = (opId, id) => campDe(opId)?.nombre || '';
+const servidorDe = opId => campDe(opId) ? 'wv' + campDe(opId).servidor : '';
+
 
 // Pestañas
-const vistas = {bitacora: () => cargarBitacora(), vivo: () => cargarVivo(), config: () => pintarConfig(), agenda: () => cargarAgenda(), metricas: () => cargarMetricas()};
+const vistas = {campanas: () => cargarCampanas(), bitacora: () => cargarBitacora(), vivo: () => cargarVivo(), agenda: () => cargarAgenda(), metricas: () => cargarMetricas()};
 function irA(v) {
   document.querySelectorAll('nav button').forEach(x => x.setAttribute('aria-selected', x.dataset.v === v));
   document.querySelectorAll('main > section').forEach(s => s.hidden = s.id !== 'v-' + v);
-  $('#sinOps').hidden = ops.length > 0 || v === 'config';
+  $('#sinCamps').hidden = camps.length > 0 || v === 'campanas';
   vistas[v]?.();
 }
 document.querySelectorAll('nav button').forEach(b => b.onclick = () => irA(b.dataset.v));
-$('#irConfig').onclick = () => irA('config');
+$('#irCampanas').onclick = () => irA('campanas');
 
 async function inicio() {
   try { catalogos = await api('/api/catalogos'); $('#carpeta').textContent = catalogos.carpetaEntrada; } catch (e) { fallo(e); }
-  await traerOps();
-  $('#sinOps').hidden = ops.length > 0;
+  await traerCamps();
+  $('#sinCamps').hidden = camps.length > 0;
   conectarVivo();
 }
-async function traerOps() {
-  try { ops = await api('/api/operaciones'); } catch (e) { fallo(e, 'No se pudieron leer las campañas principales'); }
-  pintarOpsCargue();
+async function traerCamps() {
+  try { camps = await api('/api/mis-campanas'); } catch (e) { fallo(e, 'No se pudieron leer las campañas guardadas'); }
+  const opciones = camps.map(c => `<option value="${c.id}">${esc(c.campanaId)} · ${esc(c.nombre)} · ${tipoTxt(c.tipo)}</option>`).join('');
+  const p = $('#progCamp').value; $('#progCamp').innerHTML = opciones || '<option value="">Sin campañas</option>'; if (p) $('#progCamp').value = p;
   const sel = $('#campMet').value;
-  $('#campMet').innerHTML = '<option value="">Todas</option>' + ops.flatMap(o => o.campanas.map(c => `<option value="${o.id}|${esc(c.campanaId)}">${esc(o.nombre)} · ${esc(c.campanaId)} · ${esc(c.nombre)}</option>`)).join('');
+  $('#campMet').innerHTML = '<option value="">Todas</option>' + camps.map(c => `<option value="${c.id}|${esc(c.campanaId)}">${esc(c.campanaId)} · ${esc(c.nombre)}</option>`).join('');
   $('#campMet').value = sel;
+  document.querySelectorAll('#archivos .camp').forEach(s => { const v = s.value; s.innerHTML = opcionesCamp(s.dataset.tipo); s.value = v; });
 }
 
 // ── 1. Cargar ──
-function pintarOpsCargue() {
-  const actual = $('#opCargue').value;
-  $('#opCargue').innerHTML = ops.length ? ops.map(o => `<option value="${o.id}">${esc(o.nombre)} · wv${esc(o.servidor)}${o.tokenValido === false ? ' · ⚠ token con problemas' : ''}</option>`).join('')
-    : '<option value="">No hay campañas principales</option>';
-  if (ops.some(o => String(o.id) === actual)) $('#opCargue').value = actual;
-  pintarCampsCargue();
-}
-function pintarCampsCargue() {
-  const o = opDe(+$('#opCargue').value);
-  $('#campsCargue').innerHTML = (o?.campanas || []).map(c => `<option value="${esc(c.campanaId)}">${esc(c.nombre)} · ${tipoTxt(c.tipo)}</option>`).join('');
-  infoCampCargue();
-}
-function infoCampCargue() {
-  const o = opDe(+$('#opCargue').value), id = $('#campCargue').value.trim();
-  const c = (o?.campanas || []).find(x => x.campanaId === id);
-  $('#campCargue').classList.remove('campo-error');
-  $('#infoCampCargue').innerHTML = !o ? '' : o.tokenValido === false ? cajaError({titulo: 'El token de ' + o.nombre + ' tiene problemas', message: o.ultimoError || '', sugerencia: 'Actualícelo en "Campañas y servidores".'})
-    : c ? `<div class="caja-ok">${esc(c.campanaId)} · <b>${esc(c.nombre)}</b> · ${tipoTxt(c.tipo)} · ${c.activa ? 'activa' : 'detenida'}${c.registros != null ? ' · ' + c.registros.toLocaleString('es-CO') + ' registros' : ''}</div>`
-    : id ? '<p class="mono" style="margin:10px 0 0">Número nuevo: pulse "Usar esta campaña" para comprobarlo en Wolkvox y guardarlo.</p>' : '';
-  document.querySelectorAll('#archivos .camp').forEach(s => { if (!s.dataset.tocado) { s.innerHTML = opcionesCamp(); s.value = c ? c.campanaId : ''; } });
-}
-const opcionesCamp = () => '<option value="">Elegir…</option>' + (opDe(+$('#opCargue').value)?.campanas || []).map(c => `<option value="${esc(c.campanaId)}">${esc(c.campanaId)} · ${esc(c.nombre)}</option>`).join('');
-$('#opCargue').onchange = () => { $('#campCargue').value = ''; document.querySelectorAll('#archivos .camp').forEach(s => delete s.dataset.tocado); pintarCampsCargue(); };
-$('#campCargue').oninput = infoCampCargue;
-$('#campCargue').onkeydown = e => { if (e.key === 'Enter') $('#usarCamp').click(); };
-$('#usarCamp').onclick = async () => {
-  const o = opDe(+$('#opCargue').value), id = $('#campCargue').value.trim();
-  if (!o) return aviso({tipo: 'warn', titulo: 'Primero registre una campaña principal', sugerencia: 'Vaya a "Campañas y servidores".'});
-  if (!id) { $('#campCargue').classList.add('campo-error'); return aviso({tipo: 'warn', titulo: 'Escriba el número de campaña'}); }
-  $('#usarCamp').disabled = true; $('#usarCamp').textContent = 'Comprobando en Wolkvox…';
-  try {
-    const c = await api(`/api/operaciones/${o.id}/campanas`, {method: 'POST', body: JSON.stringify({campanaId: id})});
-    await traerOps(); $('#campCargue').value = c.campanaId; infoCampCargue();
-    ok('Campaña lista', `${c.campanaId} · ${c.nombre} quedó guardada en ${o.nombre} para futuros cargues.`);
-  } catch (e) { $('#campCargue').classList.add('campo-error'); $('#infoCampCargue').innerHTML = cajaError(e); }
-  $('#usarCamp').disabled = false; $('#usarCamp').textContent = 'Usar esta campaña';
-};
-
+const opcionesCamp = tipo => '<option value="">Elegir…</option>' + camps.map(c => {
+  const choca = tipo && c.tipo && c.tipo !== tipo;
+  return `<option value="${c.id}" ${choca ? 'disabled' : ''}>${esc(c.campanaId)} · ${esc(c.nombre)} (${tipoTxt(c.tipo)})${choca ? ' · no coincide' : ''}</option>`;
+}).join('');
 $('#escanear').onclick = async () => {
   try {
     archivos = await api('/api/archivos');
@@ -370,55 +347,62 @@ $('#escanear').onclick = async () => {
         <td><input type="checkbox" class="sel" aria-label="Seleccionar ${esc(a.nombre)}"></td>
         <td title="${esc(a.huella)}">${esc(a.nombre)} ${a.yaCargado ? '<span class="pill p-warn">ya cargado</span>' : ''}</td>
         <td class="num">${a.filas.toLocaleString('es-CO')}</td>
-        <td class="rev"><button class="btn chico revisar">Revisar</button></td>
-        <td><select class="camp"></select></td>
+        <td class="rev"><span class="mono">revisando…</span></td>
+        <td><select class="camp">${opcionesCamp()}</select></td>
+        <td><input type="time" class="hi" aria-label="Hora de encendido"></td>
         <td><select class="est"><option>NUEVA</option><option value="REMARCACION">REMARCACIÓN</option></select></td>
         <td><select class="jefe">${opJefe}</select></td>
-        <td><input class="nest" size="22" placeholder="Ej. Incumplidos hasta 2 días"></td>
-        <td><input type="time" class="hi"></td>
-        <td><input type="time" class="hf"></td>
+        <td><input class="nest" size="20" placeholder="Ej. Incumplidos hasta 2 días"></td>
+        <td><input class="obs" size="20" placeholder="Opcional"></td>
       </tr>`).join('') : `<tr><td colspan="10" class="vacio">No hay CSV en ${esc(catalogos.carpetaEntrada)}.</td></tr>`;
-    document.querySelectorAll('#archivos .camp').forEach(s => s.onchange = () => s.dataset.tocado = '1');
-    infoCampCargue();
     document.querySelectorAll('.sel').forEach(c => c.onchange = actualizarBoton);
-    document.querySelectorAll('.revisar').forEach(b => b.onclick = revisar);
+    document.querySelectorAll('#archivos .camp, #archivos .hi').forEach(x => x.oninput = () => x.classList.remove('campo-error'));
+    document.querySelectorAll('#archivos tr[data-i]').forEach(revisar);
     actualizarBoton();
   } catch (e) { fallo(e, 'No se pudo leer la carpeta'); }
 };
 function actualizarBoton() { $('#cargarSel').disabled = !document.querySelector('.sel:checked'); }
-async function revisar(ev) {
-  const tr = ev.target.closest('tr'); const a = archivos[tr.dataset.i];
+async function revisar(tr) {
+  const a = archivos[tr.dataset.i];
   try {
     const v = await api('/api/archivos/' + encodeURIComponent(a.nombre) + '/revision');
+    const s = tr.querySelector('.camp');
+    if (v.tipo) { s.dataset.tipo = v.tipo; const val = s.value; s.innerHTML = opcionesCamp(v.tipo); s.value = val; }
     tr.querySelector('.rev').innerHTML = v.erroresEstructura.length
-      ? `<span class="pill p-no" title="${esc(v.erroresEstructura.join('\n'))}">estructura inválida</span>`
-      : `<span class="pill p-ok">${v.validos} válidos</span> ${v.invalidos ? `<span class="pill p-warn" title="${esc(v.ejemplosInvalidos.map(x => 'Línea ' + x.linea + ': ' + x.motivo).join('\n'))}">${v.invalidos} no válidos</span>` : ''}`;
-    if (v.erroresEstructura.length) aviso({tipo: 'error', titulo: a.nombre + ' no tiene la plantilla de Wolkvox', detalle: v.erroresEstructura.join(' · '), sugerencia: 'Corrija los encabezados del CSV.'});
-  } catch (e) { fallo(e); }
+      ? `<span class="pill p-no" title="${esc(v.erroresEstructura.join('\n'))}">${v.columnas} columnas · plantilla inválida</span>`
+      : `<span class="pill p-info">${tipoTxt(v.tipo)} · ${v.columnas} col.</span> <span class="pill p-ok">${v.validos} válidos</span> ${v.invalidos ? `<span class="pill p-warn" title="${esc(v.ejemplosInvalidos.map(x => 'Línea ' + x.linea + ': ' + x.motivo).join('\n'))}">${v.invalidos} no válidos</span>` : ''}`;
+    if (v.erroresEstructura.length) {
+      tr.querySelector('.sel').disabled = true;
+      aviso({tipo: 'error', titulo: a.nombre + ' no tiene la plantilla de Wolkvox', detalle: v.erroresEstructura.join(' · '), sugerencia: 'La plantilla predictiva tiene 36 columnas y la preview 35. Corrija el encabezado del archivo.'});
+    }
+  } catch (e) { tr.querySelector('.rev').innerHTML = '<span class="pill p-no">no se pudo leer</span>'; fallo(e); }
 }
 $('#cargarSel').onclick = async () => {
-  const o = opDe(+$('#opCargue').value);
-  if (!o) return aviso({tipo: 'warn', titulo: 'Elija la campaña principal'});
+  if (!camps.length) return aviso({tipo: 'warn', titulo: 'Primero guarde una campaña', sugerencia: 'Vaya a la pestaña "Campañas".'});
   const filas = [...document.querySelectorAll('.sel:checked')].map(c => c.closest('tr'));
-  const sinCamp = filas.filter(tr => !tr.querySelector('.camp').value);
-  sinCamp.forEach(tr => tr.querySelector('.camp').classList.add('campo-error'));
-  if (sinCamp.length) return aviso({tipo: 'warn', titulo: 'Falta la campaña destino', detalle: sinCamp.length + ' archivo(s) seleccionados no tienen campaña.', sugerencia: 'Elija la campaña en el paso 1 o en la columna "Campaña destino".'});
-  const cargues = filas.map(tr => ({
-    operacionId: o.id, archivo: archivos[tr.dataset.i].nombre, campanaId: tr.querySelector('.camp').value,
-    estrategia: tr.querySelector('.est').value, jefe: tr.querySelector('.jefe').value || null,
-    nombreEstrategia: tr.querySelector('.nest').value || null,
-    horaInicioPlan: tr.querySelector('.hi').value || null, horaFinPlan: tr.querySelector('.hf').value || null,
-    fecha: $('#fechaCargue').value }));
+  let faltan = 0;
+  filas.forEach(tr => ['.camp', '.hi'].forEach(k => { const x = tr.querySelector(k); if (!x.value) { x.classList.add('campo-error'); faltan++; } }));
+  if (faltan) return aviso({tipo: 'warn', titulo: 'Faltan datos para cargar', detalle: 'Cada archivo seleccionado necesita la campaña destino y la hora en que se debe prender la campaña.', sugerencia: 'Complete los campos marcados en rojo.'});
+  const cargues = filas.map(tr => {
+    const c = camps.find(x => String(x.id) === tr.querySelector('.camp').value);
+    return {operacionId: c.id, campanaId: c.campanaId, archivo: archivos[tr.dataset.i].nombre,
+      estrategia: tr.querySelector('.est').value, jefe: tr.querySelector('.jefe').value || null,
+      nombreEstrategia: tr.querySelector('.nest').value || null, observacion: tr.querySelector('.obs').value || null,
+      horaInicioPlan: tr.querySelector('.hi').value, fecha: $('#fechaCargue').value};
+  });
   $('#cargarSel').disabled = true; $('#cargarSel').textContent = 'Cargando a Wolkvox…';
   try {
     const r = await api('/api/cargues', {method: 'POST', body: JSON.stringify({cargues})});
     r.filter(x => x.estado === 'FALLIDO').forEach(f => aviso({tipo: 'error', titulo: 'Falló el cargue de ' + f.nombreLista, detalle: f.error}));
     const bien = r.filter(x => x.estado !== 'FALLIDO');
-    if (bien.length) ok(`${bien.length} lista(s) cargadas a ${o.nombre}`, `${bien.reduce((s, x) => s + x.registrosCargados, 0).toLocaleString('es-CO')} registros enviados a Wolkvox.` + (bien.some(x => x.registrosNoValidos) ? ' Los no válidos quedaron en la carpeta de rechazados.' : ''));
+    if (bien.length) ok(`${bien.length} lista(s) cargadas`, `${bien.reduce((s, x) => s + x.registrosCargados, 0).toLocaleString('es-CO')} registros enviados a Wolkvox. `
+      + bien.map(x => `${x.campanaId} se prende a las ${t5(x.horaInicioPlan)}`).join(' · ')
+      + (bien.some(x => x.registrosNoValidos) ? '. Los no válidos quedaron en la carpeta de rechazados.' : ''));
     $('#escanear').click();
   } catch (e) { fallo(e, 'No se pudo cargar'); }
   $('#cargarSel').textContent = 'Cargar seleccionados'; actualizarBoton();
 };
+
 
 // ── Tiempo real ──
 let fuente;
@@ -432,20 +416,22 @@ function conectarVivo() {
     marca(true);
     const a = JSON.parse(ev.data);
     if (a.tipo === 'CAMBIO') {
-      await traerOps();
+      await traerCamps();
       if ($('#fechaHist').value === a.momento.slice(0, 10)) agregarAlFeed({...a, tipo: a.evento}, true);
       aviso({tipo: a.evento === 'INICIO' ? 'ok' : 'warn', titulo: `${a.campanaNombre || a.campanaId} ${a.evento === 'INICIO' ? 'se activó' : 'se detuvo'}`,
-        detalle: `${a.operacionNombre} · campaña ${a.campanaId} · ${a.momento.slice(11, 16)} (${origenTxt(a.origen)})`});
+        detalle: `${servidorDe(a.operacionId)} · campaña ${a.campanaId} · ${a.momento.slice(11, 16)} (${origenTxt(a.origen)})`});
       if (!$('#v-bitacora').hidden) cargarBitacora();
-      if (!$('#v-vivo').hidden) pintarVivo();
+      if (!$('#v-vivo').hidden) cargarVivo();
+      if (!$('#v-campanas').hidden) cargarCampanas();
     } else if (a.tipo === 'ERROR') {
-      aviso({tipo: 'error', titulo: 'No se pudo revisar ' + a.operacionNombre, detalle: a.error, sugerencia: a.sugerencia});
-      await traerOps(); if (!$('#v-vivo').hidden) pintarVivo(); if (!$('#v-config').hidden) pintarConfig();
+      aviso({tipo: 'error', titulo: a.origen === 'PROGRAMADO' ? 'No se pudo encender la campaña ' + a.campanaId : 'No se pudo revisar ' + (a.operacionNombre || 'una campaña'), detalle: a.error, sugerencia: a.sugerencia});
+      await traerCamps(); if (!$('#v-vivo').hidden) cargarVivo(); if (!$('#v-campanas').hidden) cargarCampanas();
     } else if (a.tipo === 'ESCANEO') {
-      ultimo = a; await traerOps(); if (!$('#v-vivo').hidden) pintarVivo();
+      ultimo = a; await traerCamps(); if (!$('#v-vivo').hidden) pintarVivo();
     }
   };
 }
+
 
 // ── Bitácora ──
 $('#fechaBit').onchange = () => { horaSel = null; cargarBitacora(); };
@@ -487,7 +473,7 @@ async function pintarPanelHora() {
       ].map(([t, x]) => `<div class="kpi"><b>${x}</b><span>${t}</span></div>`).join('')}</div>
       <div class="dos" style="margin-top:12px">
         <div class="caja"><table><thead><tr><th>Campaña</th><th>Agentes</th><th>Barridos</th><th>Gestionados</th></tr></thead><tbody>${
-          v.cortes.length ? v.cortes.map(m => `<tr><td>${esc(opDe(m.operacionId)?.nombre || '')} · ${esc(m.campanaId)} ${esc(nomCamp(m.operacionId, m.campanaId))}</td><td class="num">${m.agentesConectados}</td><td class="num">${m.registrosBarridos}</td><td class="num">${m.gestionados}</td></tr>`).join('')
+          v.cortes.length ? v.cortes.map(m => `<tr><td>${esc(m.campanaId)} ${esc(nomCamp(m.operacionId, m.campanaId))}</td><td class="num">${m.agentesConectados}</td><td class="num">${m.registrosBarridos}</td><td class="num">${m.gestionados}</td></tr>`).join('')
           : '<tr><td colspan="4" class="vacio">Sin corte de esta hora todavía. Se guarda al minuto 2 de la hora siguiente (o con "Recolectar ahora" en Métricas).</td></tr>'}</tbody></table></div>
         <div class="caja"><ul class="feed">${v.eventos.length ? v.eventos.map(e => htmlEvento(e)).join('') : '<li><span></span><span class="vacio" style="padding:8px">Sin activaciones ni detenciones en esta hora.</span><span></span></li>'}</ul></div>
       </div>`;
@@ -504,23 +490,29 @@ async function cargarBitacora() {
       <tr data-id="${c.id}">
         <td>${hhmm(c.inicioCampana) || '<span style="color:var(--muted)">' + t5(c.horaInicioPlan) + '</span>'}</td>
         <td>${hhmm(c.finCampana) || '<span style="color:var(--muted)">' + t5(c.horaFinPlan) + '</span>'}</td>
-        <td>${esc(c.operacionNombre)}</td><td>${esc(c.campanaId)}</td><td>${esc(c.nombreLista)}</td><td>${esc(c.campanaNombre)}</td>
-        <td>${c.estrategia === 'REMARCACION' ? 'REMARCACIÓN' : 'NUEVA'}</td><td class="num">${c.remarcacion}</td>
+        <td>${esc(c.campanaId)}</td><td>${esc(c.nombreLista)}</td><td>${esc(c.campanaNombre)}</td>
+        <td>${c.estrategia === 'REMARCACION' ? 'REMARCACIÓN' : 'NUEVA'}</td>
         <td>${esc(c.jefe)}</td>
         <td class="num">${c.registrosCargados.toLocaleString('es-CO')}</td>
         <td class="num">${c.registrosNoValidos ? `<span class="pill p-warn">${c.registrosNoValidos}</span>` : 0}</td>
-        <td class="num">${c.totalGestionado ?? ''}</td><td>${esc(c.tipoMarcacion)}</td>
+        <td class="num">${c.totalGestionado ?? ''}</td><td>${c.tipoMarcacion ? tipoTxt(c.tipoMarcacion) : ''}</td>
         <td class="num">${c.porcentajeGestion ?? 0}%</td>
         <td><button class="btn chico inf">${c.descargaInforme === 'OK' ? '<span class="pill p-ok">OK</span>' : '<span class="pill p-warn">PDT</span>'}</button></td>
         <td>${esc(c.nombreEstrategia)}</td>
+        <td><input class="obsBit" value="${esc(c.observacion || '')}" size="22" title="Enter para guardar"></td>
         <td>${estado(c)}</td>
-        <td>${c.registrosCargados && c.operacionId ? `<button class="btn chico act" data-o="${c.operacionId}" data-c="${esc(c.campanaId)}" data-a="${c.inicioCampana && !c.finCampana ? 'detener' : 'iniciar'}">${c.inicioCampana && !c.finCampana ? 'Detener' : 'Iniciar'}</button>` : ''}</td>
-      </tr>`).join('') : (horaSel == null ? '<tr><td colspan="18" class="vacio">No hay cargues en esta fecha.</td></tr>' : '<tr><td colspan="18" class="vacio">Ninguna lista estuvo activa en esta hora.</td></tr>');
+        <td>${c.registrosCargados && c.operacionId ? `<button class="btn chico act" data-o="${c.operacionId}" data-c="${esc(c.campanaId)}" data-a="${c.inicioCampana && !c.finCampana ? 'detener' : 'iniciar'}">${c.inicioCampana && !c.finCampana ? 'Detener' : 'Encender'}</button>` : ''}</td>
+      </tr>`).join('') : (horaSel == null ? '<tr><td colspan="17" class="vacio">No hay cargues en esta fecha.</td></tr>' : '<tr><td colspan="17" class="vacio">Ninguna lista estuvo activa en esta hora.</td></tr>');
     document.querySelectorAll('.inf').forEach(b => b.onclick = async () => {
       const tr = b.closest('tr'); const esOk = b.textContent.trim() === 'OK';
       try { await api('/api/cargues/' + tr.dataset.id, {method: 'PATCH', body: JSON.stringify({descargaInforme: esOk ? 'PDT' : 'OK'})}); cargarBitacora(); } catch (e) { fallo(e); }
     });
-    document.querySelectorAll('.act').forEach(b => b.onclick = async () => {
+    document.querySelectorAll('.obsBit').forEach(i => i.onkeydown = async e => {
+      if (e.key !== 'Enter') return;
+      try { await api('/api/cargues/' + i.closest('tr').dataset.id, {method: 'PATCH', body: JSON.stringify({observacion: i.value})}); ok('Observación guardada', 'Quedó en la bitácora y en el Excel.'); }
+      catch (err) { fallo(err, 'No se pudo guardar la observación'); }
+    });
+    document.querySelectorAll('#bitacora .act').forEach(b => b.onclick = async () => {
       b.disabled = true;
       try { await api(`/api/campanas/${b.dataset.o}/${encodeURIComponent(b.dataset.c)}/${b.dataset.a}`, {method: 'POST'}); cargarBitacora(); }
       catch (e) { fallo(e, 'No se pudo ' + b.dataset.a + ' la campaña'); b.disabled = false; }
@@ -538,12 +530,13 @@ $('#sincronizar').onclick = async () => {
 };
 $('#descargar').onclick = () => location.href = '/api/bitacora/excel';
 
+
 // ── Campañas en vivo ──
-let ultimo = null;
+let ultimo = null, progsHoy = [];
 function htmlEvento(e, nuevo) {
   const ini = e.tipo === 'INICIO';
   return `<li class="${nuevo ? 'nuevo' : ''}"><time>${(e.momento || '').slice(11, 19)}</time>
-    <span><b>${esc(e.campanaId)}</b> ${esc(e.campanaNombre || '')}<br><small>${esc(e.operacionNombre || '')} · ${origenTxt(e.origen)}</small></span>
+    <span><b>${esc(e.campanaId)}</b> ${esc(e.campanaNombre || '')}<br><small>${esc(servidorDe(e.operacionId))} · ${origenTxt(e.origen)}</small></span>
     <span class="pill ${ini ? 'p-ok' : 'p-no'}">${ini ? 'activada' : 'detenida'}</span></li>`;
 }
 function agregarAlFeed(a, nuevo) {
@@ -559,34 +552,43 @@ $('#escanearCamp').onclick = async () => {
     ultimo = r;
     r.errores.forEach(x => aviso({tipo: 'error', titulo: 'No se pudo revisar ' + x.operacion + ': ' + x.titulo, detalle: x.detalle, sugerencia: x.sugerencia}));
     if (!r.errores.length) ok('Revisión terminada', `${r.revisadas} campañas revisadas, ${r.activas} activas, ${r.cambios} cambio(s).`);
-    await traerOps(); pintarVivo();
+    await traerCamps(); pintarVivo();
   } catch (e) { fallo(e); }
   $('#escanearCamp').disabled = false; $('#escanearCamp').textContent = 'Escanear ahora';
 };
 async function cargarVivo() {
-  await traerOps();
+  await traerCamps();
   try { ultimo = await api('/api/campanas/ultimo-escaneo') || ultimo; } catch {}
+  try { progsHoy = await api('/api/programaciones?fecha=' + hoy); } catch (e) { fallo(e); }
   pintarVivo(); cargarHistorial();
 }
+const progTxt = id => {
+  const p = progsHoy.filter(x => x.campanaGuardadaId === id && x.estado !== 'CANCELADA');
+  return p.length ? p.map(x => `<span class="pill ${x.estado === 'EJECUTADA' ? 'p-ok' : x.estado === 'FALLIDA' ? 'p-no' : 'p-info'}" title="${esc(x.error || '')}">${t5(x.hora)} ${x.estado.toLowerCase()}</span>`).join(' ') : '<span class="mono">—</span>';
+};
 function pintarVivo() {
   const f = $('#filtroCamp').value;
-  const todas = ops.flatMap(o => o.campanas);
-  const activas = todas.filter(c => c.activa).length;
+  const activas = camps.filter(c => c.activa).length;
   const u = ultimo && ultimo.momento ? ultimo.momento.slice(11, 16) : null;
   $('#infoEscaneo').textContent = (u ? 'Última revisión ' + u : 'Esperando la primera revisión…') + ' · se revisa sola cada ' + (catalogos.escaneo || '5m');
-  const conError = ops.filter(o => o.ultimoError).length;
-  $('#kpisCamp').innerHTML = [['Activas ahora', activas], ['Detenidas', todas.length - activas], ['Campañas registradas', todas.length],
-    ['Servidores con error', conError]].map(([t, v], i) => `<div class="kpi" ${i === 3 && v ? 'style="border-color:var(--no)"' : ''}><b ${i === 3 && v ? 'style="color:var(--no)"' : ''}>${v}</b><span>${t}</span></div>`).join('');
-  if (!ops.length) { $('#estadoOps').innerHTML = '<div class="caja"><div class="vacio">Sin campañas principales.</div></div>'; return; }
-  $('#estadoOps').innerHTML = ops.map(o => {
-    const lista = o.campanas.filter(c => f === '' || (f === '1') === !!c.activa);
-    return `<div class="caja grupo-op"><h4>${esc(o.nombre)} <span class="mono">wv${esc(o.servidor)}</span>${o.tokenValido === false ? '<span class="pill p-no">token con problemas</span>' : ''}</h4>
-      ${o.ultimoError ? `<div style="padding:0 12px 10px">${cajaError({titulo: 'Última revisión con error', message: o.ultimoError})}</div>` : ''}
-      <table><thead><tr><th>Estado</th><th>ID</th><th>Campaña</th><th>Tipo</th><th>Registros</th><th>Desde</th></tr></thead><tbody>${
-      lista.length ? lista.map(c => `<tr><td>${estadoPill(c.activa)}</td><td>${esc(c.campanaId)}</td><td>${esc(c.nombre)}${c.ultimoError ? ` <span class="pill p-no" title="${esc(c.ultimoError)}">⚠ ${esc(c.ultimoError)}</span>` : ''}</td><td>${tipoTxt(c.tipo)}</td>
-        <td class="num">${c.registros != null ? c.registros.toLocaleString('es-CO') : ''}</td><td>${c.desde ? fechaHora(c.desde) : '<span style="color:var(--muted)">desde que se registró</span>'}</td></tr>`).join('')
-      : `<tr><td colspan="6" class="vacio">${o.campanas.length ? 'Ninguna con este filtro.' : 'Sin números de campaña registrados.'}</td></tr>`}</tbody></table></div>`;
-  }).join('');
+  const conError = camps.filter(c => c.ultimoError).length;
+  const pendientes = progsHoy.filter(p => p.estado === 'PENDIENTE').length;
+  $('#kpisCamp').innerHTML = [['Activas ahora', activas], ['Detenidas', camps.length - activas], ['Encendidos pendientes hoy', pendientes],
+    ['Campañas con error', conError]].map(([t, v], i) => `<div class="kpi" ${i === 3 && v ? 'style="border-color:var(--no)"' : ''}><b ${i === 3 && v ? 'style="color:var(--no)"' : ''}>${v}</b><span>${t}</span></div>`).join('');
+  const lista = camps.filter(c => f === '' || (f === '1') === !!c.activa);
+  $('#estadoCamps').innerHTML = !camps.length ? '<tr><td colspan="9" class="vacio">Sin campañas guardadas.</td></tr>'
+    : lista.length ? lista.map(c => `<tr><td>${estadoPill(c.activa)}</td><td>${esc(c.campanaId)}</td>
+        <td>${esc(c.nombre)}${c.ultimoError ? `<br><span class="pill p-no" title="${esc(c.ultimoError)}">⚠ ${esc(c.ultimoError.slice(0, 80))}</span>` : ''}</td>
+        <td>${tipoTxt(c.tipo)}</td><td class="mono">wv${esc(c.servidor)}</td>
+        <td class="num">${c.registros != null ? c.registros.toLocaleString('es-CO') : ''}</td>
+        <td>${c.desde ? fechaHora(c.desde) : '<span style="color:var(--muted)">—</span>'}</td><td>${progTxt(c.id)}</td>
+        <td><button class="btn chico act" data-o="${c.id}" data-c="${esc(c.campanaId)}" data-a="${c.activa ? 'detener' : 'iniciar'}">${c.activa ? 'Detener' : 'Encender'}</button></td></tr>`).join('')
+    : '<tr><td colspan="9" class="vacio">Ninguna con este filtro.</td></tr>';
+  document.querySelectorAll('#estadoCamps .act').forEach(b => b.onclick = async () => {
+    b.disabled = true;
+    try { await api(`/api/campanas/${b.dataset.o}/${encodeURIComponent(b.dataset.c)}/${b.dataset.a}`, {method: 'POST'}); await traerCamps(); pintarVivo(); }
+    catch (e) { fallo(e, 'No se pudo ' + (b.dataset.a === 'iniciar' ? 'encender' : 'detener') + ' la campaña'); b.disabled = false; }
+  });
 }
 async function cargarHistorial() {
   try {
@@ -595,63 +597,98 @@ async function cargarHistorial() {
   } catch (e) { fallo(e); }
 }
 
-// ── Configuración: campañas principales ──
+// ── Campañas: alta, token, encendidos programados y listas con observaciones ──
 $('#verToken').onclick = () => { const t = $('#nToken'); t.type = t.type === 'password' ? 'text' : 'password'; $('#verToken').textContent = t.type === 'password' ? 'Mostrar' : 'Ocultar'; };
-$('#crearOp').onclick = async () => {
-  const datos = {nombre: $('#nNombre').value.trim(), servidor: $('#nServidor').value.trim(), token: $('#nToken').value.trim()};
-  ['#nNombre', '#nServidor', '#nToken'].forEach(id => $(id).classList.toggle('campo-error', !$(id).value.trim()));
-  if (!datos.nombre || !datos.servidor || !datos.token) return aviso({tipo: 'warn', titulo: 'Faltan datos', detalle: 'Nombre, servidor y token son obligatorios.'});
-  $('#crearOp').disabled = true; $('#crearOp').textContent = 'Probando el token…'; $('#resNueva').innerHTML = '';
+$('#nCampana').onkeydown = $('#nToken').onkeydown = e => { if (e.key === 'Enter') $('#crearCamp').click(); };
+$('#crearCamp').onclick = async () => {
+  const datos = {campanaId: $('#nCampana').value.trim(), servidor: $('#nServidor').value.trim(), token: $('#nToken').value.trim()};
+  ['#nCampana', '#nServidor', '#nToken'].forEach(id => $(id).classList.toggle('campo-error', !$(id).value.trim()));
+  if (!datos.campanaId || !datos.servidor || !datos.token) return aviso({tipo: 'warn', titulo: 'Faltan datos', detalle: 'Número de campaña, servidor y token son obligatorios.'});
+  $('#crearCamp').disabled = true; $('#crearCamp').textContent = 'Probando en Wolkvox…'; $('#resNueva').innerHTML = '';
   try {
-    const o = await api('/api/operaciones', {method: 'POST', body: JSON.stringify(datos)});
-    ['#nNombre', '#nServidor', '#nToken'].forEach(id => $(id).value = '');
-    $('#resNueva').innerHTML = `<div class="caja-ok">✓ Token válido: el servidor wv${esc(o.servidor)} respondió con ${o.campanasServidor} campañas. Ahora registre los números de campaña que usará.</div>`;
-    await traerOps(); pintarConfig(); $('#sinOps').hidden = true;
+    const c = await api('/api/mis-campanas', {method: 'POST', body: JSON.stringify(datos)});
+    ['#nCampana', '#nToken'].forEach(id => $(id).value = '');
+    $('#resNueva').innerHTML = `<div class="caja-ok">✓ Campaña guardada: ${esc(c.campanaId)} · <b>${esc(c.nombre)}</b> · ${tipoTxt(c.tipo)} · ${c.activa ? 'activa' : 'detenida'} en wv${esc(c.servidor)}.</div>`;
+    await traerCamps(); pintarCampanas(); $('#sinCamps').hidden = true;
   } catch (e) {
     $('#resNueva').innerHTML = cajaError(e);
     if (e.estado === 401) $('#nToken').classList.add('campo-error');
-    if (e.titulo && /servidor/i.test(e.titulo)) $('#nServidor').classList.add('campo-error');
+    if (e.estado === 404 || /número/i.test(e.titulo || '')) $('#nCampana').classList.add('campo-error');
+    if (/servidor/i.test(e.titulo || '')) $('#nServidor').classList.add('campo-error');
   }
-  $('#crearOp').disabled = false; $('#crearOp').textContent = 'Validar y guardar';
+  $('#crearCamp').disabled = false; $('#crearCamp').textContent = 'Validar y guardar';
 };
-function pintarConfig() {
-  $('#listaOps').innerHTML = ops.length ? ops.map(o => `
-    <div class="tarjeta op" data-op="${o.id}">
+$('#fechaCamps').onchange = () => cargarCampanas();
+$('#programar').onclick = async () => {
+  const id = +$('#progCamp').value, hora = $('#progHora').value;
+  if (!id) return aviso({tipo: 'warn', titulo: 'Elija la campaña'});
+  if (!hora) { $('#progHora').classList.add('campo-error'); return aviso({tipo: 'warn', titulo: 'Falta la hora de encendido'}); }
+  $('#progHora').classList.remove('campo-error');
+  try { const p = await api('/api/programaciones', {method: 'POST', body: JSON.stringify({campanaGuardadaId: id, hora})}); ok('Encendido programado', `${p.campanaId} · ${p.campanaNombre} se prende hoy a las ${t5(p.hora)}.`); cargarCampanas(); }
+  catch (e) { fallo(e); }
+};
+let cargDia = [];
+async function cargarCampanas() {
+  await traerCamps();
+  try { [progsHoy, cargDia] = await Promise.all([api('/api/programaciones?fecha=' + hoy), api('/api/cargues?fecha=' + $('#fechaCamps').value)]); } catch (e) { fallo(e); }
+  pintarProgramaciones(); pintarCampanas();
+}
+function pintarProgramaciones() {
+  const m = {PENDIENTE: 'p-info', EJECUTADA: 'p-ok', FALLIDA: 'p-no', CANCELADA: 'p-warn', VENCIDA: 'p-warn'};
+  $('#programaciones').innerHTML = progsHoy.length ? progsHoy.map(p => `<tr data-p="${p.id}">
+      <td>${p.estado === 'PENDIENTE' ? `<input type="time" class="phora" value="${t5(p.hora)}"> <button class="btn chico pguardar">Cambiar</button>` : t5(p.hora)}</td>
+      <td>${esc(p.campanaId)} · ${esc(p.campanaNombre || '')} <span class="mono">wv${esc(p.servidor)}</span></td>
+      <td>${esc(p.nombreLista || 'programado a mano')}</td>
+      <td><span class="pill ${m[p.estado]}">${p.estado.toLowerCase()}</span>${p.ejecutada ? ` <span class="mono">${hhmm(p.ejecutada)}</span>` : ''}${p.error ? cajaError({titulo: 'No se pudo encender', message: p.error}) : ''}</td>
+      <td>${p.estado === 'PENDIENTE' ? '<button class="btn chico peligro pcancelar">Cancelar</button>' : ''}</td></tr>`).join('')
+    : '<tr><td colspan="5" class="vacio">No hay encendidos programados para hoy. Se crean solos al cargar una lista, o prográmelos arriba.</td></tr>';
+  document.querySelectorAll('#programaciones tr[data-p]').forEach(tr => {
+    const id = tr.dataset.p;
+    tr.querySelector('.pguardar')?.addEventListener('click', async () => {
+      try { await api('/api/programaciones/' + id, {method: 'PUT', body: JSON.stringify({hora: tr.querySelector('.phora').value})}); ok('Hora cambiada'); cargarCampanas(); } catch (e) { fallo(e); }
+    });
+    tr.querySelector('.pcancelar')?.addEventListener('click', async () => {
+      try { await api('/api/programaciones/' + id, {method: 'DELETE'}); ok('Encendido cancelado'); cargarCampanas(); } catch (e) { fallo(e); }
+    });
+  });
+}
+function pintarCampanas() {
+  $('#listaCamps').innerHTML = camps.length ? camps.map(c => {
+    const listas = cargDia.filter(x => x.operacionId === c.id);
+    return `<div class="tarjeta op" data-id="${c.id}">
       <div class="op-cab">
-        <h3>${esc(o.nombre)}</h3><span class="mono">wv${esc(o.servidor)}.wolkvox.com · token ${esc(o.token)}</span>
-        ${o.tokenValido === true ? '<span class="pill p-ok">token válido</span>' : o.tokenValido === false ? '<span class="pill p-no">token inválido</span>' : '<span class="pill p-info">sin validar</span>'}
-        <span class="mono">${o.ultimaValidacion ? 'probado ' + fechaHora(o.ultimaValidacion) : ''}${o.campanasServidor != null ? ' · ' + o.campanasServidor + ' campañas en el servidor' : ''}</span>
+        <h3>${esc(c.campanaId)} · ${esc(c.nombre)}</h3><span class="pill p-info">${tipoTxt(c.tipo)}</span>${estadoPill(c.activa)}
+        <span class="mono">wv${esc(c.servidor)}.wolkvox.com · token ${esc(c.token)}</span>
+        ${c.tokenValido === true ? '<span class="pill p-ok">token válido</span>' : c.tokenValido === false ? '<span class="pill p-no">token inválido</span>' : ''}
+        <span class="mono">${c.ultimaValidacion ? 'probado ' + fechaHora(c.ultimaValidacion) : ''}</span>
         <span class="sep"></span>
-        <button class="btn chico validar">Probar token</button>
-        <button class="btn chico editar">Editar</button>
+        <button class="btn chico probar">Probar token</button>
+        <button class="btn chico editar">Cambiar token</button>
         <button class="btn chico peligro borrar">Quitar</button>
       </div>
-      ${o.ultimoError ? cajaError({titulo: 'Problema con este servidor', message: o.ultimoError}) : ''}
+      ${c.ultimoError ? cajaError({titulo: 'Problema con esta campaña', message: c.ultimoError}) : ''}
       <div class="form editor" hidden style="margin-top:12px">
-        <label>Nombre<input class="eNombre" value="${esc(o.nombre)}" size="20"></label>
-        <label>Servidor<span class="prefijo"><span>wv</span><input class="eServidor" value="${esc(o.servidor)}"></span></label>
-        <label>Token nuevo (vacío = dejar el actual)<input class="eToken" type="password" size="34" autocomplete="off"></label>
+        <label>Servidor<span class="prefijo"><span>wv</span><input class="eServidor" value="${esc(c.servidor)}"></span></label>
+        <label>Token nuevo<input class="eToken" type="password" size="34" autocomplete="off"></label>
         <button class="btn primario guardar">Validar y guardar</button><button class="btn cancelar">Cancelar</button>
       </div>
       <div class="resOp"></div>
       <div class="caja" style="margin-top:12px">
-        <table><thead><tr><th>ID</th><th>Campaña</th><th>Tipo</th><th>Estado</th><th>Registros</th><th>Última revisión</th><th></th></tr></thead><tbody>${
-          o.campanas.length ? o.campanas.map(c => `<tr><td>${esc(c.campanaId)}</td><td>${esc(c.nombre)}${c.ultimoError ? ` <span class="pill p-no">⚠ ${esc(c.ultimoError)}</span>` : ''}</td><td>${tipoTxt(c.tipo)}</td><td>${estadoPill(c.activa)}</td>
-            <td class="num">${c.registros != null ? c.registros.toLocaleString('es-CO') : ''}</td><td>${fechaHora(c.ultimaRevision)}</td>
-            <td><button class="btn chico peligro quitar" data-c="${esc(c.campanaId)}">Quitar</button></td></tr>`).join('')
-          : '<tr><td colspan="7" class="vacio">Aún no hay números de campaña. Agregue el primero abajo.</td></tr>'}</tbody></table>
+        <table><thead><tr><th>Lista</th><th>Encendido</th><th>Cargados</th><th>Gestionado</th><th>Estado</th><th style="width:40%">Observación (va a la bitácora)</th></tr></thead><tbody>${
+          listas.length ? listas.map(l => `<tr data-cargue="${l.id}"><td>${esc(l.nombreLista)}</td>
+            <td>${hhmm(l.inicioCampana) || '<span style="color:var(--muted)">' + (t5(l.horaInicioPlan) || '—') + '</span>'}</td>
+            <td class="num">${l.registrosCargados.toLocaleString('es-CO')}</td><td class="num">${l.totalGestionado ?? ''}</td><td>${estado(l)}</td>
+            <td><div class="form" style="flex-wrap:nowrap"><input class="obs" value="${esc(l.observacion || '')}" style="flex:1" placeholder="Escriba una observación"><button class="btn chico gobs">Guardar</button></div></td></tr>`).join('')
+          : '<tr><td colspan="6" class="vacio">No hay listas cargadas en esta fecha.</td></tr>'}</tbody></table>
       </div>
-      <div class="form" style="margin-top:10px">
-        <label>Agregar número de campaña<input class="nuevaCamp" placeholder="Ej. 30849" inputmode="numeric" size="16"></label>
-        <button class="btn agregar">Comprobar y agregar</button>
-      </div>
-    </div>`).join('') : '';
-  document.querySelectorAll('#listaOps .op').forEach(card => {
-    const id = +card.dataset.op, o = opDe(id), res = card.querySelector('.resOp');
-    card.querySelector('.validar').onclick = async ev => {
+    </div>`;
+  }).join('') : '<div class="caja"><div class="vacio">Aún no hay campañas guardadas.</div></div>';
+  document.querySelectorAll('#listaCamps .op').forEach(card => {
+    const id = +card.dataset.id, c = camps.find(x => x.id === id), res = card.querySelector('.resOp');
+    card.querySelector('.probar').onclick = async ev => {
       ev.target.disabled = true; ev.target.textContent = 'Probando…';
-      try { const v = await api(`/api/operaciones/${id}/validar`, {method: 'POST'}); await traerOps(); pintarConfig();
-        if (v.ultimoError) aviso({tipo: 'error', titulo: 'El token de ' + v.nombre + ' no funcionó', detalle: v.ultimoError}); else ok('Token válido', `${v.nombre}: ${v.campanasServidor} campañas en wv${v.servidor}.`);
+      try { const v = await api(`/api/mis-campanas/${id}/probar`, {method: 'POST'}); await traerCamps(); pintarCampanas();
+        if (v.ultimoError) aviso({tipo: 'error', titulo: 'La campaña ' + v.campanaId + ' tiene problemas', detalle: v.ultimoError}); else ok('Token válido', `${v.campanaId} · ${v.nombre} responde en wv${v.servidor}.`);
       } catch (e) { fallo(e); ev.target.disabled = false; ev.target.textContent = 'Probar token'; }
     };
     card.querySelector('.editar').onclick = () => card.querySelector('.editor').hidden = false;
@@ -659,30 +696,26 @@ function pintarConfig() {
     card.querySelector('.guardar').onclick = async ev => {
       ev.target.disabled = true; ev.target.textContent = 'Probando…';
       try {
-        await api(`/api/operaciones/${id}`, {method: 'PUT', body: JSON.stringify({nombre: card.querySelector('.eNombre').value, servidor: card.querySelector('.eServidor').value, token: card.querySelector('.eToken').value})});
-        await traerOps(); pintarConfig(); ok('Cambios guardados', o.nombre);
+        await api(`/api/mis-campanas/${id}`, {method: 'PUT', body: JSON.stringify({servidor: card.querySelector('.eServidor').value, token: card.querySelector('.eToken').value})});
+        await traerCamps(); pintarCampanas(); ok('Token actualizado', c.campanaId + ' · ' + c.nombre);
       } catch (e) { res.innerHTML = cajaError(e); ev.target.disabled = false; ev.target.textContent = 'Validar y guardar'; }
     };
     card.querySelector('.borrar').onclick = async () => {
-      if (!confirm(`¿Quitar ${o.nombre}? Si ya tiene cargues se archiva y la bitácora los conserva.`)) return;
-      try { const r = await api(`/api/operaciones/${id}`, {method: 'DELETE'}); await traerOps(); pintarConfig(); ok(o.nombre + (r.resultado === 'archivada' ? ' archivada' : ' eliminada')); }
+      if (!confirm(`¿Quitar la campaña ${c.campanaId} · ${c.nombre}? Si ya tiene cargues se archiva y la bitácora los conserva.`)) return;
+      try { const r = await api(`/api/mis-campanas/${id}`, {method: 'DELETE'}); await traerCamps(); pintarCampanas(); ok('Campaña ' + c.campanaId + (r.resultado === 'archivada' ? ' archivada' : ' quitada')); }
       catch (e) { fallo(e); }
     };
-    card.querySelectorAll('.quitar').forEach(b => b.onclick = async () => {
-      try { await api(`/api/operaciones/${id}/campanas/${encodeURIComponent(b.dataset.c)}`, {method: 'DELETE'}); await traerOps(); pintarConfig(); ok('Campaña ' + b.dataset.c + ' quitada'); }
-      catch (e) { fallo(e); }
+    card.querySelectorAll('tr[data-cargue]').forEach(tr => {
+      const guardar = async () => {
+        try { await api('/api/cargues/' + tr.dataset.cargue, {method: 'PATCH', body: JSON.stringify({observacion: tr.querySelector('.obs').value})}); ok('Observación guardada', 'Quedó en la bitácora y en el Excel.'); }
+        catch (e) { fallo(e, 'No se pudo guardar la observación'); }
+      };
+      tr.querySelector('.gobs').onclick = guardar;
+      tr.querySelector('.obs').onkeydown = e => { if (e.key === 'Enter') guardar(); };
     });
-    const input = card.querySelector('.nuevaCamp');
-    input.onkeydown = e => { if (e.key === 'Enter') card.querySelector('.agregar').click(); };
-    card.querySelector('.agregar').onclick = async ev => {
-      const num = input.value.trim();
-      if (!num) { input.classList.add('campo-error'); return; }
-      ev.target.disabled = true; ev.target.textContent = 'Comprobando en Wolkvox…'; res.innerHTML = '';
-      try { const c = await api(`/api/operaciones/${id}/campanas`, {method: 'POST', body: JSON.stringify({campanaId: num})}); await traerOps(); pintarConfig(); ok('Campaña agregada', `${c.campanaId} · ${c.nombre} (${tipoTxt(c.tipo)})`); }
-      catch (e) { input.classList.add('campo-error'); res.innerHTML = cajaError(e); ev.target.disabled = false; ev.target.textContent = 'Comprobar y agregar'; }
-    };
   });
 }
+
 
 // ── Agenda ──
 $('#fechaAg').onchange = cargarAgenda;
@@ -698,8 +731,8 @@ async function cargarAgenda() {
     const pi = aHoras(c.horaInicioPlan), pf = aHoras(c.horaFinPlan);
     const ri = c.inicioCampana ? aHoras(c.inicioCampana.slice(11)) : null;
     const rf = c.finCampana ? aHoras(c.finCampana.slice(11)) : (ri != null && esHoy ? hAhora : ri);
-    html += `<div class="fila"><div class="nom" title="${esc(c.operacionNombre)} · ${esc(c.nombreLista)}"><b>${esc(c.campanaId)}</b> ${esc(c.nombreLista)}</div><div class="pista">
-      ${pi != null ? `<div class="bar plan" style="left:${pos(pi)}%;width:${pos(pf ?? pi + 1) - pos(pi)}%">${t5(c.horaInicioPlan)}–${t5(c.horaFinPlan)}</div>` : ''}
+    html += `<div class="fila"><div class="nom" title="${esc(c.nombreLista)}"><b>${esc(c.campanaId)}</b> ${esc(c.nombreLista)}</div><div class="pista">
+      ${pi != null ? `<div class="bar plan" style="left:${pos(pi)}%;width:${pos(pf ?? pi + 1) - pos(pi)}%">${c.horaFinPlan ? t5(c.horaInicioPlan) + '–' + t5(c.horaFinPlan) : 'enciende ' + t5(c.horaInicioPlan)}</div>` : ''}
       ${ri != null ? `<div class="bar real" style="left:${pos(ri)}%;width:${Math.max(.4, pos(rf) - pos(ri))}%"></div>` : ''}
       ${esHoy ? `<div class="ahora" style="left:${pos(hAhora)}%"></div>` : ''}
     </div></div>`;
@@ -731,7 +764,7 @@ async function cargarMetricas() {
     ['% gestión', cargados ? Math.round(gest * 100 / cargados) + '%' : '0%'],
     ['Máx. agentes en una hora', Math.max(0, ...porHora(datos).map(h => h.agentesConectados))]
   ].map(([t, v]) => `<div class="kpi"><b>${v}</b><span>${t}</span></div>`).join('');
-  $('#metricas').innerHTML = datos.length ? datos.map(m => `<tr><td>${m.hora.slice(11,16)}</td><td>${esc(opDe(m.operacionId)?.nombre || '')}</td><td>${esc(m.campanaId)} ${esc(nomCamp(m.operacionId, m.campanaId))}</td><td class="num">${m.agentesConectados}</td><td class="num">${m.registrosBarridos}</td><td class="num">${m.gestionados}</td></tr>`).join('')
+  $('#metricas').innerHTML = datos.length ? datos.map(m => `<tr><td>${m.hora.slice(11,16)}</td><td class="mono">${esc(servidorDe(m.operacionId))}</td><td>${esc(m.campanaId)} ${esc(nomCamp(m.operacionId, m.campanaId))}</td><td class="num">${m.agentesConectados}</td><td class="num">${m.registrosBarridos}</td><td class="num">${m.gestionados}</td></tr>`).join('')
     : '<tr><td colspan="6" class="vacio">Sin cortes todavía. Se guardan solos cada hora cuando hay campañas activas.</td></tr>';
   dibujar(porHora(datos));
 }

@@ -47,7 +47,7 @@ public class ExcelBitacoraAdaptador implements BitacoraExcelPuerto {
             new Col("FECHA", FilaBitacora::fecha),
             new Col("ID_CAMPAÑA", FilaBitacora::idCampana),
             new Col("NOMBRE DE LISTA", FilaBitacora::nombreLista),
-            new Col("HORARIO PLANEADO", FilaBitacora::horarioPlaneado),
+            new Col("ENCENDIDO PROGRAMADO", FilaBitacora::horarioPlaneado),
             new Col("REGISTROS NO VÁLIDOS", FilaBitacora::registrosNoValidos),
             new Col("HUELLA ARCHIVO", FilaBitacora::huella));
 

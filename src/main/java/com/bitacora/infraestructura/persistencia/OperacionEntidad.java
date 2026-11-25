@@ -5,7 +5,7 @@ import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
-/** Campaña principal: un cliente u operación con su propio servidor de Wolkvox y su token. */
+/** Conexión a Wolkvox (servidor + token). Cada campaña guardada tiene la suya; el id es el de la campaña guardada. */
 @Entity
 @Table(name = "operacion")
 public class OperacionEntidad {
