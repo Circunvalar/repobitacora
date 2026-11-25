@@ -1,5 +1,6 @@
 package com.bitacora.aplicacion;
 
+import com.bitacora.dominio.modelo.TipoMarcacion;
 import com.bitacora.dominio.modelo.EstadoDescarga;
 import com.bitacora.dominio.modelo.TipoEstrategia;
 import com.bitacora.dominio.puerto.BitacoraExcelPuerto;
@@ -91,7 +92,7 @@ public class BitacoraServicio {
         Integer pct = c.porcentajeGestion();
         return new FilaBitacora(c.fecha.format(FECHA), inicio, fin, c.campanaId, c.nombreLista, c.campanaNombre,
                 c.estrategia.name(), c.remarcacion, c.jefe, c.registrosCargados, c.totalGestionado,
-                c.tipoMarcacion != null ? c.tipoMarcacion.name() : null, pct != null ? pct + "%" : "0%",
+                c.tipoMarcacion == null ? null : c.tipoMarcacion == TipoMarcacion.PREVIEW ? "PREVIEW" : "PREDICTIVA", pct != null ? pct + "%" : "0%",
                 c.descargaInforme.name(), c.nombreEstrategia, c.observacion, c.registrosNoValidos, c.huella, plan);
     }
 }

@@ -37,6 +37,14 @@ public class OperacionServicio {
 
     public record Datos(String nombre, String servidor, String token) {}
 
+    /** Alta de una campaña: su número, el servidor donde vive y el token con el que se consulta. */
+    public record NuevaCampana(String campanaId, String servidor, String token) {}
+
+    /** Una campaña guardada, como la ve la pantalla. El id es el de su conexión (servidor + token). */
+    public record CampanaGuardada(Long id, String campanaId, String nombre, String tipo, String servidor, String token,
+                                  Boolean tokenValido, Boolean activa, Integer registros, LocalDateTime desde,
+                                  LocalDateTime ultimaRevision, LocalDateTime ultimaValidacion, String ultimoError) {}
+
     private final OperacionRepositorio operaciones;
     private final CampanaRepositorio campanas;
     private final CargueRepositorio cargues;
@@ -191,6 +199,92 @@ public class OperacionServicio {
 
     public void quitarCampana(long operacionId, String campanaId) {
         QuarkusTransaction.requiringNew().run(() -> campanas.delete("operacionId = ?1 and campanaId = ?2", operacionId, campanaId));
+    }
+
+    // ─── Campañas con su propio servidor y token (sin campaña principal) ───
+
+    public List<CampanaGuardada> campanasGuardadas() {
+        return QuarkusTransaction.requiringNew().call(() -> operaciones.vigentes().stream()
+                .flatMap(o -> campanas.deOperacion(o.id).stream().map(c -> guardada(o, c))).toList());
+    }
+
+    public CampanaGuardada campanaGuardada(long id) {
+        return QuarkusTransaction.requiringNew().call(() -> {
+            OperacionEntidad o = entidad(id);
+            return campanas.deOperacion(id).stream().findFirst().map(c -> guardada(o, c)).orElseThrow(() -> ErrorNegocio.noEncontrado(
+                    "Campaña no encontrada", "La campaña " + id + " ya no está guardada.", "Recargue la página."));
+        });
+    }
+
+    /**
+     * Guarda una campaña: comprueba en Wolkvox que el token sirve en ese servidor y que la campaña existe.
+     * Si ya estaba guardada (o se había quitado), se actualiza su token.
+     */
+    public CampanaGuardada guardarCampana(NuevaCampana d) {
+        String numero = requerido(d.campanaId(), "número de campaña", "Escriba el número (ID) de la campaña que aparece en Wolkvox Manager.");
+        if (!numero.matches("\\d{1,12}")) {
+            throw ErrorNegocio.datos("Número de campaña no válido", "\"" + numero + "\" no es un número de campaña.",
+                    "Escriba solo el número (ID) de la campaña que aparece en Wolkvox Manager.");
+        }
+        Conexion con = new Conexion(requerido(d.servidor(), "servidor", "Escriba los 4 dígitos de wvXXXX.wolkvox.com."),
+                requerido(d.token(), "token", "Pegue el token creado en Wolkvox Manager → Configuración → Integraciones → Tokens."));
+        validarServidor(con.servidor());
+        Campana c = wolkvox.campana(con, numero).orElseThrow(() -> ErrorNegocio.noEncontrado(
+                "La campaña " + numero + " no existe en wv" + con.servidor(),
+                "El token funciona, pero el servidor wv" + con.servidor() + " no tiene ninguna campaña con el número " + numero + ".",
+                "Revise el número en Wolkvox Manager o si la campaña está en otro servidor."));
+        String clave = "wv" + con.servidor() + " · " + numero;
+        LocalDateTime ahora = ahora();
+        long id = QuarkusTransaction.requiringNew().call(() -> {
+            OperacionEntidad o = operaciones.find("lower(nombre) = ?1", clave.toLowerCase()).firstResultOptional().orElseGet(OperacionEntidad::new);
+            if (o.id == null) {
+                o.nombre = clave;
+                o.creado = ahora;
+            }
+            o.servidor = con.servidor();
+            o.token = con.token();
+            o.archivada = false;
+            o.tokenValido = true;
+            o.ultimaValidacion = ahora;
+            o.ultimoError = null;
+            if (o.id == null) operaciones.persist(o);
+            return o.id;
+        });
+        agregarCampana(id, c.id());
+        return campanaGuardada(id);
+    }
+
+    /** Cambia el token (y si se quiere el servidor) de una campaña guardada; se prueba antes de guardar. */
+    public CampanaGuardada cambiarToken(long id, String servidor, String token) {
+        CampanaGuardada actual = campanaGuardada(id);
+        String srv = servidor == null || servidor.isBlank() ? actual.servidor() : servidor;
+        String tok = token == null || token.isBlank() ? QuarkusTransaction.requiringNew().call(() -> entidad(id).token) : token;
+        if (!srv.equals(actual.servidor())) {
+            return guardarCampana(new NuevaCampana(actual.campanaId(), srv, tok));
+        }
+        editar(id, new Datos(null, srv, tok));
+        agregarCampana(id, actual.campanaId());
+        return campanaGuardada(id);
+    }
+
+    /** Prueba el token y refresca nombre, tipo y estado de la campaña. No lanza error: lo deja en la campaña. */
+    public CampanaGuardada probarCampana(long id) {
+        Vista v = validar(id);
+        if (v.ultimoError() == null) {
+            String numero = campanaGuardada(id).campanaId();
+            try {
+                agregarCampana(id, numero);
+            } catch (ErrorNegocio e) {
+                QuarkusTransaction.requiringNew().run(() -> entidad(id).ultimoError = recortar(e.titulo() + ": " + e.getMessage()));
+            }
+        }
+        return campanaGuardada(id);
+    }
+
+    private CampanaGuardada guardada(OperacionEntidad o, CampanaEntidad c) {
+        return new CampanaGuardada(o.id, c.campanaId, c.nombre, c.tipo != null ? c.tipo.name() : null, o.servidor,
+                enmascarar(o.token), o.tokenValido, c.activa, c.registros, c.desde, c.ultimaRevision, o.ultimaValidacion,
+                o.ultimoError != null ? o.ultimoError : c.ultimoError);
     }
 
     // ─── Para los otros servicios ───
