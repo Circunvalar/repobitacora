@@ -4,12 +4,15 @@ Aplicación web en Quarkus que toma los CSV de una carpeta, los valida con la pl
 los carga a cualquier campaña (predictiva o preview), deja cada cargue en la bitácora y en un Excel,
 registra la hora exacta de activación/detención de la campaña y guarda métricas por hora.
 
-Es **multicampaña**: cada campaña principal (operación) tiene su propio servidor `wvXXXX` y su token.
-Se registran en la pantalla "Campañas y servidores": el token se valida contra Wolkvox antes de guardarse y
-se muestra enmascarado. Los números de campaña se escriben a mano, se comprueban en el servidor de esa
-campaña principal y quedan guardados para los próximos cargues. No hay modo simulado: todo va contra Wolkvox.
-Los errores de la API (códigos documentados por Wolkvox) se traducen a mensajes con qué hacer, en avisos y
-recuadros rojos en la pantalla.
+Es **multicampaña**: cada campaña se guarda con su número, su servidor `wvXXXX` y su token (no hay
+"campañas principales"). Al guardarla se prueba el token y se comprueba que la campaña exista en ese servidor.
+Cada cargue pide la **hora de encendido**: si la campaña está apagada, se programa su encendido para ese día
+(solo encendido; lo que no se ejecutó queda vencido al día siguiente). El tipo de lista sale de la plantilla de
+Wolkvox: 36 columnas = Predictiva, 35 = Preview, y debe coincidir con la campaña. Cada lista lleva su observación,
+que va a la columna OBSERVACION de la bitácora. El Excel respeta el encabezado:
+FECHA · HORA INICIO · HORA FINAL · ID_CAMPAÑA · NOMBRE DE LISTA · CAMPAÑA · ESTRATEGIA · JEFE · REGISTROS CARGADOS ·
+TOTAL GESTIONADO · ESTRATEGIA MARCACION · % GESTIÓN · DESCARGA INFORME · NOMBRE ESTRATEGIA · OBSERVACION.
+No hay modo simulado: todo va contra Wolkvox. Los errores de la API se traducen a mensajes con qué hacer.
 
 ## Documentos
 - `docs/diagrama-sistema.html`: diagrama de sistema, módulos y respuestas sobre la API de Wolkvox.
@@ -20,7 +23,7 @@ El paquete `BitacoraDigital.zip` trae todo: `bitacora-digital.jar`, `Iniciar-Bit
 `config/application.properties` y `LEEME.txt` (los archivos de `distribucion/` más el jar).
 
 1. Doble clic en `Iniciar-Bitacora.bat` → abre http://localhost:4444.
-2. "Campañas y servidores": registrar cada campaña principal (nombre, servidor, token) y sus números de campaña.
+2. "Campañas": guardar cada campaña con su número, servidor y token.
 
 - Base de datos **H2 embebida** (archivo), sin instalar motor. El lanzador la deja en
   `%LOCALAPPDATA%\BitacoraDigital\db` para que OneDrive no la sincronice. Migraciones con Flyway.
@@ -42,7 +45,7 @@ Todo está en `src/main/resources/application.properties`; en el equipo se sobre
 
 | Propiedad / variable | Para qué |
 |---|---|
-| `bitacora.wolkvox.url-base` | `https://wv{servidor}.wolkvox.com/api/v2/` (el servidor sale de cada campaña principal) |
+| `bitacora.wolkvox.url-base` | `https://wv{servidor}.wolkvox.com/api/v2/` (el servidor sale de cada campaña guardada) |
 | `bitacora.campanas.escaneo` | Intervalo del escaneo de campañas activas (`5m`; `off` lo apaga) |
 | `bitacora.carpetas.entrada` / `BITACORA_ENTRADA` | Carpeta de CSV, p. ej. la carpeta de SharePoint sincronizada |
 | `bitacora.excel.ruta` / `BITACORA_EXCEL` | Ruta del Excel de la bitácora |

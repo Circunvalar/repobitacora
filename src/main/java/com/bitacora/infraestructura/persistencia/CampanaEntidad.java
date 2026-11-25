@@ -6,7 +6,7 @@ import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
-/** Número de campaña de Wolkvox registrado dentro de una campaña principal, con su último estado conocido. */
+/** Campaña de Wolkvox guardada con su conexión (servidor + token) y su último estado conocido. */
 @Entity
 @Table(name = "campana")
 public class CampanaEntidad {

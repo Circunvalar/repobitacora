@@ -87,9 +87,8 @@ public interface BitacoraConfig {
     }
 
     interface Campanas {
-        /** Activa o detiene automáticamente según el horario planeado de cada cargue. */
-        @WithDefault("false")
-        boolean autoActivar();
+        /** Ya no se usa (el encendido se programa en la app); se conserva para no romper configuraciones viejas. */
+        @WithDefault("false") boolean autoActivar();
         /** Intervalo del escaneo de campañas activas/inactivas (p. ej. 5m); "off" lo desactiva. */
         @WithDefault("5m")
         String escaneo();

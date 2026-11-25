@@ -34,7 +34,7 @@ public class CargueServicio {
                             String observacion, LocalDate fecha) {}
 
     public record Vista(String archivo, int filas, int validos, int invalidos, List<String> erroresEstructura,
-                        List<RegistroInvalido> ejemplosInvalidos, List<String> encabezado) {}
+                        List<RegistroInvalido> ejemplosInvalidos, List<String> encabezado, int columnas, String tipo) {}
 
     private final ArchivosPuerto archivos;
     private final WolkvoxPuerto wolkvox;
@@ -43,11 +43,13 @@ public class CargueServicio {
     private final BitacoraServicio bitacora;
     private final BitacoraConfig config;
     private final ValidadorCsv validador;
+    private final ProgramacionServicio programacion;
     private final Clock reloj;
 
     public CargueServicio(ArchivosPuerto archivos, WolkvoxPuerto wolkvox,
                           OperacionServicio operaciones, CargueRepositorio repo, BitacoraServicio bitacora,
-                          BitacoraConfig config, Clock reloj) {
+                          BitacoraConfig config, ProgramacionServicio programacion, Clock reloj) {
+        this.programacion = programacion;
         this.archivos = archivos;
         this.wolkvox = wolkvox;
         this.operaciones = operaciones;
@@ -74,19 +76,37 @@ public class CargueServicio {
         CsvLeido csv = archivos.leer(archivo);
         ResultadoValidacion v = validador.validar(csv);
         return new Vista(archivo, csv.filas().size(), v.validos().size(), v.invalidos().size(), v.erroresEstructura(),
-                v.invalidos().stream().limit(20).toList(), csv.encabezado());
+                v.invalidos().stream().limit(20).toList(), csv.encabezado(), PlantillaWolkvox.columnas(csv.encabezado()),
+                PlantillaWolkvox.detectar(csv.encabezado()).map(Enum::name).orElse(null));
     }
 
     /** Registra el cargue en la bitácora y lo ejecuta. Devuelve la fila resultante. */
     public CargueEntidad cargar(Solicitud s) {
-        if (s.operacionId() == null) {
-            throw ErrorNegocio.datos("Falta la campaña principal", "No se indicó a qué campaña principal pertenece el cargue.",
-                    "Elija la campaña principal en el paso 1.");
+        if (s.operacionId() == null || s.campanaId() == null || s.campanaId().isBlank()) {
+            throw ErrorNegocio.datos("Falta la campaña", "No se indicó a qué campaña va el cargue de " + s.archivo() + ".",
+                    "Elija la campaña destino.");
+        }
+        if (s.horaInicioPlan() == null) {
+            throw ErrorNegocio.datos("Falta la hora de encendido", "Indique a qué hora se debe prender la campaña para gestionar "
+                    + s.archivo() + ".", "Escriba la hora de encendido en la fila del archivo.");
         }
         OperacionEntidad op = QuarkusTransaction.requiringNew().call(() -> operaciones.entidad(s.operacionId()));
         // Se registra (o refresca) el número de campaña: así queda guardado para futuros cargues.
         operaciones.agregarCampana(op.id, s.campanaId());
         Campana campana = QuarkusTransaction.requiringNew().call(() -> operaciones.campanaRegistrada(op.id, s.campanaId().trim()).aCampana());
+        // La plantilla dice si la lista es predictiva (36 columnas) o preview (35); debe coincidir con la campaña.
+        CsvLeido leido = archivos.leer(s.archivo());
+        TipoMarcacion tipoArchivo = PlantillaWolkvox.detectar(leido.encabezado()).orElseThrow(() -> ErrorNegocio.datos(
+                "El archivo no tiene la plantilla de Wolkvox",
+                s.archivo() + " tiene " + PlantillaWolkvox.columnas(leido.encabezado()) + " columnas: la predictiva tiene "
+                        + PlantillaWolkvox.COLUMNAS_PREDICTIVA + " y la preview " + PlantillaWolkvox.COLUMNAS_PREVIEW + ".",
+                "Descargue la plantilla de la campaña en Wolkvox Manager y copie los datos en ella."));
+        if (campana.tipo() != null && campana.tipo() != tipoArchivo) {
+            throw ErrorNegocio.datos("La lista no corresponde al tipo de campaña",
+                    s.archivo() + " es una lista " + PlantillaWolkvox.nombre(tipoArchivo) + " y la campaña " + campana.id()
+                            + " (" + campana.nombre() + ") es " + PlantillaWolkvox.nombre(campana.tipo()) + ".",
+                    "Elija una campaña " + PlantillaWolkvox.nombre(tipoArchivo) + " o use la plantilla correcta.");
+        }
         String huella = archivos.huella(s.archivo());
         String nombreLista = NombreLista.desdeArchivo(s.archivo());
         String base = NombreLista.base(nombreLista);
@@ -94,7 +114,7 @@ public class CargueServicio {
         Long id = QuarkusTransaction.requiringNew().call(() -> {
             if (!config.cargue().permitirDuplicados() && repo.huellaYaCargada(huella, op.id, campana.id())) {
                 throw ErrorNegocio.conflicto("Archivo ya cargado", "El archivo " + s.archivo() + " ya se cargó a la campaña "
-                        + campana.id() + " de " + op.nombre + ".", "Si de verdad quiere repetirlo, cambie el archivo o use REMARCACIÓN con un archivo nuevo.");
+                        + campana.id() + " (wv" + op.servidor + ").", "Si de verdad quiere repetirlo, cambie el archivo o use REMARCACIÓN con un archivo nuevo.");
             }
             CargueEntidad c = new CargueEntidad();
             c.fecha = s.fecha() != null ? s.fecha() : LocalDate.now(reloj);
@@ -104,7 +124,7 @@ public class CargueServicio {
             c.operacionNombre = op.nombre;
             c.campanaId = campana.id();
             c.campanaNombre = campana.nombre();
-            c.tipoMarcacion = campana.tipo();
+            c.tipoMarcacion = tipoArchivo;
             c.archivo = s.archivo();
             c.nombreLista = nombreLista;
             c.listaBase = base;
@@ -124,7 +144,7 @@ public class CargueServicio {
 
         int[] enviados = {0, 0}; // aceptados, rechazados por Wolkvox (para no perder la cuenta si un lote falla)
         try {
-            CsvLeido csv = archivos.leer(s.archivo());
+            CsvLeido csv = leido;
             ResultadoValidacion v = validador.validar(csv);
             if (!v.estructuraValida()) throw ErrorNegocio.datos("El archivo no tiene la plantilla de Wolkvox",
                     String.join("; ", v.erroresEstructura()), "Revise los encabezados del CSV.");
@@ -158,6 +178,15 @@ public class CargueServicio {
                 }
             });
             archivos.moverAProcesados(s.archivo());
+            // Encendido de hoy a la hora pedida (solo si la campaña no está ya encendida).
+            LocalDate fechaCargue = s.fecha() != null ? s.fecha() : LocalDate.now(reloj);
+            if (ac > 0 && !destino.estaActiva() && fechaCargue.equals(LocalDate.now(reloj))) {
+                try {
+                    programacion.programar(op.id, campana.id(), s.horaInicioPlan(), id);
+                } catch (RuntimeException e) {
+                    LOG.errorf("La lista %s se cargó, pero no se pudo programar el encendido: %s", s.archivo(), e.getMessage());
+                }
+            }
         } catch (RuntimeException e) {
             LOG.errorf(e, "Falló el cargue de %s", s.archivo());
             QuarkusTransaction.requiringNew().run(() -> {

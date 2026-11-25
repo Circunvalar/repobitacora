@@ -199,28 +199,6 @@ public class CampanaServicio {
                 momento, origen, null, null, null, null));
     }
 
-    /** Si está activado, cada minuto inicia o detiene las campañas según el horario planeado de sus cargues. */
-    @Scheduled(every = "60s", delayed = "30s", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
-    void activarSegunHorario() {
-        if (!config.campanas().autoActivar()) return;
-        LocalDate hoy = LocalDate.now(reloj);
-        LocalTime ahora = LocalTime.now(reloj);
-        for (CargueEntidad cg : QuarkusTransaction.requiringNew().call(() -> cargues.delDia(hoy))) {
-            if (cg.operacionId == null || cg.registrosCargados <= 0) continue;
-            try {
-                if (cg.inicioCampana == null && cg.horaInicioPlan != null && !ahora.isBefore(cg.horaInicioPlan)
-                        && (cg.horaFinPlan == null || ahora.isBefore(cg.horaFinPlan))) {
-                    iniciar(cg.operacionId, cg.campanaId, "HORARIO");
-                } else if (cg.inicioCampana != null && cg.finCampana == null && cg.horaFinPlan != null
-                        && !ahora.isBefore(cg.horaFinPlan)) {
-                    detener(cg.operacionId, cg.campanaId, "HORARIO");
-                }
-            } catch (RuntimeException e) {
-                LOG.errorf("No se pudo aplicar el horario de la campaña %s: %s", cg.campanaId, e.getMessage());
-            }
-        }
-    }
-
     private static String recortar(String s) {
         return s == null ? null : s.length() > 1000 ? s.substring(0, 1000) : s;
     }

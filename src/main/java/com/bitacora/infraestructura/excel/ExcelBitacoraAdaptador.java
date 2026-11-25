@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.function.Function;
 
 /**
- * Genera la bitácora en Excel con el encabezado de siempre más REMARCACIONES.
+ * Genera la bitácora en Excel con el encabezado exacto de la bitácora (15 columnas).
  * Una segunda hoja "Detalle" lleva los datos de apoyo (no válidos, huella, horario planeado).
  */
 @ApplicationScoped
@@ -34,7 +34,6 @@ public class ExcelBitacoraAdaptador implements BitacoraExcelPuerto {
             new Col("NOMBRE DE LISTA", FilaBitacora::nombreLista),
             new Col("CAMPAÑA", FilaBitacora::campana),
             new Col("ESTRATEGIA", FilaBitacora::estrategia),
-            new Col("REMARCACIONES", FilaBitacora::remarcaciones),
             new Col("JEFE", FilaBitacora::jefe),
             new Col("REGISTROS CARGADOS", FilaBitacora::registrosCargados),
             new Col("TOTAL GESTIONADO", FilaBitacora::totalGestionado),
@@ -48,7 +47,7 @@ public class ExcelBitacoraAdaptador implements BitacoraExcelPuerto {
             new Col("FECHA", FilaBitacora::fecha),
             new Col("ID_CAMPAÑA", FilaBitacora::idCampana),
             new Col("NOMBRE DE LISTA", FilaBitacora::nombreLista),
-            new Col("HORARIO PLANEADO", FilaBitacora::horarioPlaneado),
+            new Col("ENCENDIDO PROGRAMADO", FilaBitacora::horarioPlaneado),
             new Col("REGISTROS NO VÁLIDOS", FilaBitacora::registrosNoValidos),
             new Col("HUELLA ARCHIVO", FilaBitacora::huella));
 

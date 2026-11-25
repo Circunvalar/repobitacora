@@ -71,7 +71,6 @@ public class BitacoraRecurso {
         return Map.of("jefes", config.catalogos().jefes(),
                 "estrategias", List.of("NUEVA", "REMARCACION"),
                 "carpetaEntrada", config.carpetas().entrada(),
-                "escaneo", config.campanas().escaneo(),
-                "autoActivar", config.campanas().autoActivar());
+                "escaneo", config.campanas().escaneo());
     }
 }
