@@ -18,30 +18,32 @@ class CampanasEnVivoTest {
 
     @Test
     void rechazaTokenInvalidoConMensajeClaro() {
-        given().contentType(ContentType.JSON).body(Map.of("campanaId", "15315", "servidor", "0003", "token", "OTRO"))
-                .when().post("/api/mis-campanas").then().statusCode(401)
+        given().contentType(ContentType.JSON).body(Map.of("nombre", "MALA", "servidor", "0003", "token", "OTRO"))
+                .when().post("/api/operaciones").then().statusCode(401)
                 .body("titulo", is("Token inválido o vencido")).body("sugerencia", containsString("Tokens"));
     }
 
     @Test
     void rechazaDatosMalEscritos() {
-        given().contentType(ContentType.JSON).body(Map.of("campanaId", "15315", "servidor", "abc", "token", "T"))
-                .when().post("/api/mis-campanas").then().statusCode(400).body("titulo", is("Servidor no válido"));
-        given().contentType(ContentType.JSON).body(Map.of("campanaId", "12a", "servidor", "0003", "token", "TOKEN-0003"))
-                .when().post("/api/mis-campanas").then().statusCode(400).body("titulo", is("Número de campaña no válido"));
+        given().contentType(ContentType.JSON).body(Map.of("nombre", "X", "servidor", "abc", "token", "T"))
+                .when().post("/api/operaciones").then().statusCode(400).body("titulo", is("Servidor no válido"));
+        long op = FlujoCargueTest.crearOperacion("Y " + System.nanoTime(), "0003", "TOKEN-0003");
+        given().contentType(ContentType.JSON).body(Map.of("campanaId", "12a", "nombre", "X"))
+                .when().post("/api/operaciones/" + op + "/campanas").then().statusCode(400).body("titulo", is("Número de campaña no válido"));
     }
 
     @Test
     void cadaCampanaUsaSuServidorYSuToken() {
-        FlujoCargueTest.guardarCampana("777", "0100", "TOKEN-0100");
-        given().when().get("/api/mis-campanas").then().statusCode(200)
-                .body("find { it.campanaId == '777' }.nombre", is("COBRANZA_TEMPRANA"))
-                .body("find { it.campanaId == '777' }.tipo", is("PREDICTIVO"))
-                .body("find { it.campanaId == '777' }.servidor", is("0100"))
-                .body("find { it.campanaId == '777' }.token", not(containsString("TOKEN")));
+        long b = FlujoCargueTest.guardarCampana("777", "0100", "TOKEN-0100");
+        given().when().get("/api/operaciones").then().statusCode(200)
+                .body("find { it.id == " + b + " }.campanas[0].nombre", is("MI CAMPAÑA 777"))
+                .body("find { it.id == " + b + " }.campanas[0].tipo", is("PREDICTIVO"))
+                .body("find { it.id == " + b + " }.servidor", is("0100"))
+                .body("find { it.id == " + b + " }.token", not(containsString("TOKEN")));
         // 777 no existe en wv0003, aunque el token de ese servidor sea válido
-        given().contentType(ContentType.JSON).body(Map.of("campanaId", "777", "servidor", "0003", "token", "TOKEN-0003"))
-                .when().post("/api/mis-campanas").then().statusCode(404).body("titulo", containsString("no existe en wv0003"));
+        long a = FlujoCargueTest.crearOperacion("A " + System.nanoTime(), "0003", "TOKEN-0003");
+        given().contentType(ContentType.JSON).body(Map.of("campanaId", "777", "nombre", "OTRA"))
+                .when().post("/api/operaciones/" + a + "/campanas").then().statusCode(404).body("titulo", containsString("no existe en wv0003"));
     }
 
     @Test
@@ -52,8 +54,9 @@ class CampanasEnVivoTest {
         given().when().get("/api/campanas/historial?fecha=" + LocalDate.now()).then().statusCode(200)
                 .body("findAll { it.operacionId == " + id + " }.origen", hasItem("ESCANEO"))
                 .body("findAll { it.operacionId == " + id + " }.tipo", hasItem("INICIO"));
-        given().when().get("/api/mis-campanas").then().statusCode(200)
-                .body("find { it.id == " + id + " }.activa", is(true));
+        given().when().get("/api/operaciones").then().statusCode(200)
+                .body("find { it.id == " + id + " }.campanas[0].activa", is(true))
+                .body("find { it.id == " + id + " }.campanas[0].nombre", is("MI CAMPAÑA 777"));
         WolkvoxFalso.cambiarDesdeManager("0100", "777", false);
         given().when().post("/api/campanas/escanear").then().statusCode(200);
     }

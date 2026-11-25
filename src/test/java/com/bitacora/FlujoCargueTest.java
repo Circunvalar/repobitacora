@@ -59,11 +59,20 @@ class FlujoCargueTest {
         return s.append(String.join("\t", malo)).append('\n').toString();
     }
 
-    static long guardarCampana(String campanaId, String servidor, String token) {
-        return given().contentType(ContentType.JSON).body(Map.of("campanaId", campanaId, "servidor", servidor, "token", token))
-                .when().post("/api/mis-campanas").then().statusCode(200)
-                .body("tokenValido", is(true)).body("token", not(containsString(token))).body("campanaId", is(campanaId))
+    static long crearOperacion(String nombre, String servidor, String token) {
+        return given().contentType(ContentType.JSON).body(Map.of("nombre", nombre, "servidor", servidor, "token", token))
+                .when().post("/api/operaciones").then().statusCode(200)
+                .body("tokenValido", is(true)).body("token", not(containsString(token)))
                 .extract().jsonPath().getLong("id");
+    }
+
+    /** Crea una operación y le agrega la campaña con un nombre puesto por el usuario. Devuelve el id de la operación. */
+    static long guardarCampana(String campanaId, String servidor, String token) {
+        long op = crearOperacion("OP " + campanaId + " " + System.nanoTime(), servidor, token);
+        given().contentType(ContentType.JSON).body(Map.of("campanaId", campanaId, "nombre", "MI CAMPAÑA " + campanaId))
+                .when().post("/api/operaciones/" + op + "/campanas").then().statusCode(200)
+                .body("campanaId", is(campanaId)).body("nombre", is("MI CAMPAÑA " + campanaId));
+        return op;
     }
 
     @Test
@@ -116,7 +125,8 @@ class FlujoCargueTest {
         given().when().get("/api/programaciones").then().statusCode(200)
                 .body("findAll { it.campanaGuardadaId == " + id + " }.estado", hasItem("EJECUTADA"));
         given().when().get("/api/cargues?fecha=" + hoy).then().statusCode(200)
-                .body("find { it.operacionId == " + id + " }.inicioCampana", notNullValue());
+                .body("find { it.operacionId == " + id + " }.inicioCampana", notNullValue())
+                .body("find { it.operacionId == " + id + " }.campanaNombre", is("MI CAMPAÑA 30849"));
         given().when().get("/api/campanas/historial?fecha=" + hoy).then().statusCode(200)
                 .body("findAll { it.operacionId == " + id + " }.origen", hasItem("PROGRAMADO"));
 

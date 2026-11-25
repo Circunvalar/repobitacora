@@ -15,9 +15,8 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Conexiones a Wolkvox (servidor + token). En la pantalla cada campaña guardada es una conexión con una sola campaña
- * (ver "Campañas con su propio servidor y token"); los métodos de "campaña principal" quedan para uso interno y los números de campaña
- * que se registran a mano dentro de cada una para futuros cargues.
+ * Operaciones (nombre, servidor de Wolkvox y token) y las campañas (nombre e ID) que se cargan en cada una.
+ * Los métodos de "campañas guardadas" atienden la vista anterior de una campaña por conexión.
  */
 @ApplicationScoped
 public class OperacionServicio {
@@ -71,12 +70,12 @@ public class OperacionServicio {
 
     /** Crea la campaña principal solo si el token funciona en ese servidor. */
     public Vista crear(Datos d) {
-        String nombre = requerido(d.nombre(), "nombre", "Escriba un nombre que identifique la campaña principal, p. ej. REINTEGRA.");
+        String nombre = requerido(d.nombre(), "nombre", "Escriba un nombre que identifique la operación, p. ej. REINTEGRA.");
         Conexion con = new Conexion(requerido(d.servidor(), "servidor", "Escriba los 4 dígitos de wvXXXX.wolkvox.com."),
                 requerido(d.token(), "token", "Pegue el token creado en Wolkvox Manager → Configuración → Integraciones → Tokens."));
         validarServidor(con.servidor());
         if (QuarkusTransaction.requiringNew().call(() -> operaciones.existeNombre(nombre, null))) {
-            throw ErrorNegocio.conflicto("Nombre repetido", "Ya existe una campaña principal llamada " + nombre + ".", "Use otro nombre.");
+            throw ErrorNegocio.conflicto("Nombre repetido", "Ya existe una operación llamada " + nombre + ".", "Use otro nombre.");
         }
         List<Campana> visibles = wolkvox.campanas(con); // lanza un error claro si el token o el servidor no sirven
         LocalDateTime ahora = ahora();
@@ -102,7 +101,7 @@ public class OperacionServicio {
         String token = d.token() == null || d.token().isBlank() ? actual.token : d.token().trim();
         validarServidor(servidor);
         if (QuarkusTransaction.requiringNew().call(() -> operaciones.existeNombre(nombre, id))) {
-            throw ErrorNegocio.conflicto("Nombre repetido", "Ya existe una campaña principal llamada " + nombre + ".", "Use otro nombre.");
+            throw ErrorNegocio.conflicto("Nombre repetido", "Ya existe una operación llamada " + nombre + ".", "Use otro nombre.");
         }
         boolean cambiaConexion = !servidor.equals(actual.servidor) || !token.equals(actual.token);
         Integer visibles = cambiaConexion ? wolkvox.campanas(new Conexion(servidor, token)).size() : null;
