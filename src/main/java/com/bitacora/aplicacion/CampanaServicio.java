@@ -131,7 +131,7 @@ public class CampanaServicio {
                         continue;
                     }
                     r.ultimoError = null;
-                    r.nombre = c.nombre();
+                    if (r.nombre == null || r.nombre.isBlank()) r.nombre = c.nombre();
                     r.tipo = c.tipo();
                     r.registros = c.registros();
                     if (c.activa() != null && r.activa != null && !c.activa().equals(r.activa)) {

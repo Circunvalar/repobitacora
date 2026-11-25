@@ -168,6 +168,11 @@ public class OperacionServicio {
 
     /** Registra un número de campaña después de comprobar en Wolkvox que existe en ese servidor. */
     public CampanaVista agregarCampana(long operacionId, String numero) {
+        return agregarCampana(operacionId, numero, null);
+    }
+
+    /** Agrega la campaña con el nombre que le da el usuario (si no da nombre, se usa el de Wolkvox). */
+    public CampanaVista agregarCampana(long operacionId, String numero, String nombreUsuario) {
         String id = numero == null ? "" : numero.trim();
         if (!id.matches("\\d{1,12}")) {
             throw ErrorNegocio.datos("Número de campaña no válido", "\"" + id + "\" no es un número de campaña.",
@@ -187,7 +192,8 @@ public class OperacionServicio {
                 e.campanaId = c.id();
                 e.creado = ahora;
             }
-            e.nombre = c.nombre();
+            if (nombreUsuario != null && !nombreUsuario.isBlank()) e.nombre = nombreUsuario.trim();
+            else if (e.nombre == null || e.nombre.isBlank()) e.nombre = c.nombre();
             e.tipo = c.tipo();
             e.activa = c.activa();
             e.registros = c.registros();

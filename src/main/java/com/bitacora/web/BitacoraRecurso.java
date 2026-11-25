@@ -20,7 +20,11 @@ public class BitacoraRecurso {
     private final MetricasServicio metricas;
     private final BitacoraConfig config;
 
-    public BitacoraRecurso(BitacoraServicio bitacora, MetricasServicio metricas, BitacoraConfig config) {
+    private final com.bitacora.aplicacion.AjustesServicio ajustes;
+
+    public BitacoraRecurso(BitacoraServicio bitacora, MetricasServicio metricas, BitacoraConfig config,
+                           com.bitacora.aplicacion.AjustesServicio ajustes) {
+        this.ajustes = ajustes;
         this.bitacora = bitacora;
         this.metricas = metricas;
         this.config = config;
@@ -70,7 +74,7 @@ public class BitacoraRecurso {
     public Map<String, Object> catalogos() {
         return Map.of("jefes", config.catalogos().jefes(),
                 "estrategias", List.of("NUEVA", "REMARCACION"),
-                "carpetaEntrada", config.carpetas().entrada(),
+                "carpetaEntrada", ajustes.carpetaBases(),
                 "escaneo", config.campanas().escaneo());
     }
 }
